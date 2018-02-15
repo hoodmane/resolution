@@ -9,6 +9,7 @@ import java.awt.Color;
 import java.util.*;
 import javax.swing.JOptionPane;
 
+
 public class Main {
     
     public static void die_if(boolean test, String fail)
@@ -25,6 +26,14 @@ public class Main {
     static SettingsDialog sd;
     public static void main(String[] args)
     {
+
+	if(args.length>0) {
+	   new Cli(args).parse();
+	   ResMath.calcInverses();
+	   GradedModule<Sq>  sqmod = new BrunerNotationModule();
+	   GradedAlgebra<Sq> steen = new SteenrodAlgebra();
+	   startBruner(steen, sqmod);
+	} else {
         String s;
         sd = new SettingsDialog();
         sd.setVisible(true); /* blocks until dialog has completed */
@@ -36,11 +45,7 @@ public class Main {
         Config.P = (Integer) sd.prime.getSelectedItem();
         Config.Q = 2 * (Config.P - 1);
         ResMath.calcInverses();
-
-        /* T cap */
         Config.T_CAP = (Integer) sd.maxt.getValue();
-
-        /* threads */
         Config.THREADS = (Integer) sd.threads.getValue();
 
         /* intervene for the Cartan-Eilenberg option */
@@ -110,7 +115,7 @@ public class Main {
 
             startBruner(analg, anmod);
         }
-
+	}
 
     }
 
@@ -121,11 +126,11 @@ public class Main {
         back.setModule(mod);
         Decorated<Generator<T>, ? extends MultigradedVectorSpace<Generator<T>>> dec = back.getDecorated();
 
-        /* frontend */
+       /* frontend *//*
         String s = sd.front.getSelection().getActionCommand();
         if(s == SettingsDialog.FRONT3D)
             ResDisplay3D.constructFrontend(dec);
-        else
+        else */
             ResDisplay.constructFrontend(dec);
 
         /* off we go */
