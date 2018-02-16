@@ -25,7 +25,7 @@ public class Cli {
   options.addOption("a","Algebra", false, "The algebra");
  }
 
- public void parse() {
+ public String parse() {
   CommandLineParser parser = new BasicParser();
 
   CommandLine cmd = null;
@@ -39,10 +39,15 @@ public class Cli {
      Config.Q = 2 * (Config.P - 1);
      if(cmd.hasOption("tmax"))
         Config.T_CAP = Integer.parseInt(cmd.getOptionValue("tmax"));
+     if(cmd.hasOption("module"))
+        return cmd.getOptionValue("module");
+     else
+    	return "";
 
     } catch (ParseException e) {
        log.log(Level.SEVERE, "Failed to parse comand line properties", e);
        help();
+       return "";
     }
  }
 

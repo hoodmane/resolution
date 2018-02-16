@@ -26,11 +26,10 @@ public class Main {
     static SettingsDialog sd;
     public static void main(String[] args)
     {
-
 	if(args.length>0) {
-	   new Cli(args).parse();
+	   String moduleFileName = new Cli(args).parse();
 	   ResMath.calcInverses();
-	   GradedModule<Sq>  sqmod = new BrunerNotationModule();
+	   GradedModule<Sq>  sqmod = new BrunerNotationModule(moduleFileName);
 	   GradedAlgebra<Sq> steen = new SteenrodAlgebra();
 	   startBruner(steen, sqmod);
 	} else {

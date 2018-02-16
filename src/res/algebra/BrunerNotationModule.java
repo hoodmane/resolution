@@ -27,20 +27,29 @@ public class BrunerNotationModule extends GradedModule<Sq>
         else return alist;
     }
 
+    public BrunerNotationModule(){
+        this("");
+    }
 
-    public BrunerNotationModule()
+    public BrunerNotationModule(String filepath)
     {
+	File file;
         /* XXX issues with extra gradings -- follow alg? */
-        JFileChooser jfc = new JFileChooser();
-        jfc.setDialogTitle("Load module...");
-        int ret = jfc.showOpenDialog(null);
-        if(ret != JFileChooser.APPROVE_OPTION) {
-            System.err.println("User aborted module loading.");
-            System.exit(1);
+        if(filepath==null || filepath.isEmpty()){
+           JFileChooser jfc = new JFileChooser();
+           jfc.setDialogTitle("Load module...");
+           int ret = jfc.showOpenDialog(null);
+           if(ret != JFileChooser.APPROVE_OPTION) {
+               System.err.println("User aborted module loading.");
+               System.exit(1);
+           }
+           file = jfc.getSelectedFile();
+        } else {
+           file = new File(filepath);
         }
 
         try {
-            load(jfc.getSelectedFile());
+            load(file);
         } catch(IOException e) {
             e.printStackTrace();
             System.err.println("Failed to load module.");
