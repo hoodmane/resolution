@@ -7,6 +7,14 @@ import javax.swing.*;
 
 public class BrunerNotationModule extends GradedModule<Sq>
 {
+   /* We make a Generator<Sq> for each generator and then embed each in a Dot<Sq>.
+      A Dot<Sq> is a pair, an element of the steenrod algebra (a Sq) and a Generator<Sq> (which has an integer id and a degree).
+      dotsidx: each Generator<Sq> paired with the identity element of the Steenrod algebra, embedded in a Dot.
+      dots:    a map from degree to generators in that degree.
+      actions: a map from generators to a map from integers (presumably representing some P^n) to a DModSet which represents an Fp linear combination of 
+               elements of the module.
+      TODO: refactor these to "dotsidx" ==> "gens" and  "dots" ==> "gensByDegree" or something.
+   */
     ArrayList<Dot<Sq>> dotsidx = new ArrayList<Dot<Sq>>();
     Map<Integer,ArrayList<Dot<Sq>>> dots = new TreeMap<Integer,ArrayList<Dot<Sq>>>();
 
@@ -56,6 +64,13 @@ public class BrunerNotationModule extends GradedModule<Sq>
             System.exit(1);
         }
     }
+
+  /*  private void load(ModuleSpecification s){
+	for(Map.Entry<String, Integer> entry : generators.entrySet()){
+            ret+= entry.getKey() + " : " + Integer.toString(entry.getValue()) + "\n"; 
+	}
+    }*/
+
 
     private void load(File f) throws IOException
     {

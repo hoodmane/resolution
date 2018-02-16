@@ -1,14 +1,18 @@
 package res;
 
+
 import res.algebra.*;
 import res.backend.*;
 import res.frontend.*;
 import res.transform.*;
+import res.JSONModule;
 
 import java.awt.Color;
 import java.util.*;
 import javax.swing.JOptionPane;
 
+import java.text.ParseException;
+import java.io.IOException;
 
 public class Main {
     
@@ -22,15 +26,27 @@ public class Main {
             System.exit(1);
         }
     }
+ 
+    private static void quit(Exception e){
+        System.out.println("" + e);
+        System.out.println("Quitting.");
+	System.exit(1);
+    }
 
     static SettingsDialog sd;
     public static void main(String[] args)
     {
 	if(args.length>0) {
 	   String moduleFileName = new Cli(args).parse();
-	   ResMath.calcInverses();
-	   GradedModule<Sq>  sqmod = new BrunerNotationModule(moduleFileName);
+           GradedModule<Sq>  sqmod;
+           try {
+	      sqmod = JSONModule.loadFromFile(moduleFileName);
+           } catch(ParseException | IOException e) {
+              quit(e);
+              return;
+           }
 	   GradedAlgebra<Sq> steen = new SteenrodAlgebra();
+	   ResMath.calcInverses();
 	   startBruner(steen, sqmod);
 	} else {
         String s;

@@ -22,6 +22,11 @@ public class BrunerBackend<T extends GradedElement<T>>
     private Map<int[],Set<Generator<T>>> gensByMultidegree = new TreeMap<int[],Set<Generator<T>>>(Multidegrees.multidegComparator);
     private Map<int[],BrunerCellData<T>> output = new TreeMap<int[],BrunerCellData<T>>(Multidegrees.multidegComparator);
 
+    private int computedStems = 0;
+    
+    public boolean isDone(){
+         return computedStems - 1 == Config.T_CAP;
+    }
 
     public BrunerBackend(GradedAlgebra<T> alg) {
         this.alg = alg;
@@ -200,7 +205,7 @@ public class BrunerBackend<T extends GradedElement<T>>
         /* get the old kernel basis */
         BrunerCellData<T> olddat = dat(s-1, t);
         Iterable<DModSet<T>> okbasis;
-        
+
         if(s == 0)
             okbasis = module.basis_wrap(t);
         else
@@ -333,14 +338,19 @@ public class BrunerBackend<T extends GradedElement<T>>
         ping(new int[] {s,t,-1});
 
         if(Config.STDOUT) System.out.printf("(%2d,%2d): %2d gen, %2d ker\n\n", s, t, dat.gens.size(), dat.kbasis.size());
-
+        
+        if(s == t){
+            computedStems ++;
+            System.out.println(computedStems);
+        }
+    
         if(Config.TIMING && s == t) {
             long elapsed = System.currentTimeMillis() - start;
             double log = Math.log(elapsed);
             double score = log / t; 
             Runtime run = Runtime.getRuntime();
-            System.out.printf("t=%d elapsed=%dms log/t=%f mem=%dM/%dM\n",
-                t, elapsed, score, (run.maxMemory() - run.freeMemory())>>20, run.maxMemory()>>20);
+            //System.out.printf("t=%d elapsed=%dms log/t=%f mem=%dM/%dM\n",
+            //    t, elapsed, score, (run.maxMemory() - run.freeMemory())>>20, run.maxMemory()>>20);
         }
 
         /* kick off the second task */
