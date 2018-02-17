@@ -66,10 +66,8 @@ public class Sq implements GradedElement<Sq>
     public ModSet<Sq> times(Sq o)
     {
         int[] ret = new int[q.length + o.q.length];
-        for(int i = 0; i < q.length; i++)
-            ret[i] = q[i];
-        for(int i = 0; i < o.q.length; i++)
-            ret[q.length + i] = o.q[i];
+        System.arraycopy(q, 0, ret, 0, q.length);
+        System.arraycopy(o.q, 0, ret, q.length, o.q.length);
 
         if(Config.P == 2 && !Config.MICHAEL_MODE)
             return new Sq(ret).resolve_2();
@@ -81,7 +79,7 @@ public class Sq implements GradedElement<Sq>
     {
         ModSet<Sq> ret;
 
-        ret = new ModSet<Sq>();
+        ret = new ModSet<>();
 
         for(int i = q.length - 2; i >= 0; i--) {
             int a = q[i];
@@ -109,8 +107,9 @@ public class Sq implements GradedElement<Sq>
                 }
 
                 /* recurse */
-                for(Map.Entry<Sq,Integer> sub : new Sq(t).resolve_2().entrySet())
+                new Sq(t).resolve_2().entrySet().forEach((sub) -> {
                     ret.add(sub.getKey(), sub.getValue());
+                });
             }
 
             return ret;
@@ -125,7 +124,7 @@ public class Sq implements GradedElement<Sq>
     {
         ModSet<Sq> ret;
 
-        ret = new ModSet<Sq>();
+        ret = new ModSet<>();
         
         /* convenience */
         final int P = Config.P;

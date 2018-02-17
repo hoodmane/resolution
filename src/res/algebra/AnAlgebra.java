@@ -12,28 +12,28 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
         N = _N;
 
         // precompute hopf elements
-        hopf.add(new AnElement(new ModSet<Sq>(Sq.HOPF[0]),1));
+        hopf.add(new AnElement(new ModSet<>(Sq.HOPF[0]),1));
         int pow = Config.Q;
         for(int i = 1; i <= N; i++) {
             Sq sq = new Sq(pow);
-            AnElement elt = new AnElement(new ModSet<Sq>(sq), pow);
+            AnElement elt = new AnElement(new ModSet<>(sq), pow);
             hopf.add(elt);
             pow *= Config.P;
         }
     }
 
-    ArrayList<AnElement> hopf = new ArrayList<AnElement>();
+    ArrayList<AnElement> hopf = new ArrayList<>();
 
     // cache everything
-    Map<Integer, Map<Sq,AnElement>> basis = new TreeMap<Integer, Map<Sq,AnElement>>();
-    Map<AnElement,Map<AnElement,ModSet<AnElement>>> mult = new TreeMap<AnElement,Map<AnElement,ModSet<AnElement>>>();
+    Map<Integer, Map<Sq,AnElement>> basis = new TreeMap<>();
+    Map<AnElement,Map<AnElement,ModSet<AnElement>>> mult = new TreeMap<>();
 
     @Override public Iterable<AnElement> basis(int n)
     {
         Map<Sq,AnElement> ret = basis.get(n);
         if(ret != null) return ret.values();
 
-        ret = new TreeMap<Sq,AnElement>();
+        ret = new TreeMap<>();
         if(n == 0) {
             ret.put(Sq.UNIT, AnElement.UNIT);
         } else {
@@ -47,11 +47,11 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
             for(int d = 1; d < n; d++) {
                 for(AnElement a : basis(d)) {
                     if(! mult.containsKey(a))
-                        mult.put(a, new TreeMap<AnElement,ModSet<AnElement>>());
+                        mult.put(a, new TreeMap<>());
 
                     for(AnElement b : basis(n-d)) {
                         // multiply
-                        ModSet<Sq> prod = new ModSet<Sq>();
+                        ModSet<Sq> prod = new ModSet<>();
                         for(Map.Entry<Sq,Integer> e1 : a.modset.entrySet()) {
                             for(Map.Entry<Sq,Integer> e2 : b.modset.entrySet()) {
                                 ModSet<Sq> sqprod = e1.getKey().times(e2.getKey());
@@ -63,7 +63,7 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
                         // reduce by Gaussian elimination
                         Sq highKey = null;
                         int highVal = -1;
-                        ModSet<AnElement> eltprod = new ModSet<AnElement>();
+                        ModSet<AnElement> eltprod = new ModSet<>();
                         while(! prod.isEmpty()) {
                             Map.Entry<Sq,Integer> high = prod.lastEntry();
                             highKey = high.getKey();
@@ -100,8 +100,8 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
 
     @Override public ModSet<AnElement> times(AnElement a, AnElement b)
     {
-        if(a == AnElement.UNIT) return new ModSet<AnElement>(b);
-        if(b == AnElement.UNIT) return new ModSet<AnElement>(a);
+        if(a == AnElement.UNIT) return new ModSet<>(b);
+        if(b == AnElement.UNIT) return new ModSet<>(a);
         return mult.get(a).get(b);
     }
 

@@ -82,8 +82,8 @@ public class ResDisplay3D<U extends MultigradedElement<U>> extends JPanel implem
 
 
         /* get the vertices and place them */
-        Map<U, Vertex> vertexmap = new TreeMap<U, Vertex>();
-        TreeMap<int[], Integer> offsets = new TreeMap<int[], Integer>(Multidegrees.multidegComparator);
+        Map<U, Vertex> vertexmap = new TreeMap<>();
+        TreeMap<int[], Integer> offsets = new TreeMap<>(Multidegrees.multidegComparator);
         for(int x = bounds[0]; x <= bounds[1]; x++) {
             for(int y = bounds[2]; y <= bounds[3]; y++) {
 
@@ -112,21 +112,22 @@ public class ResDisplay3D<U extends MultigradedElement<U>> extends JPanel implem
             } 
         }
 
-        for(U u : vertexmap.keySet()) {
+        vertexmap.keySet().forEach((u) -> {
             int[] tp1 = vertexmap.get(u).tp;
 
             /* based line decorations */
-            for(BasedLineDecoration<U> d : dec.getBasedLineDecorations(u)) {
+            dec.getBasedLineDecorations(u).forEach((d) -> {
                 Vertex vo = vertexmap.get(d.dest);
-                if(vo == null) continue;
-                int[] tp2 = vo.tp;
-
-                g.setColor(d.color);
-                g.drawLine(tp1[0], tp1[1], tp2[0], tp2[1]);
-            }
+                if (!(vo == null)) {
+                    int[] tp2 = vo.tp;
+                    
+                    g.setColor(d.color);
+                    g.drawLine(tp1[0], tp1[1], tp2[0], tp2[1]);
+                }
+            });
 
             /* unbased line decorations */
-            for(UnbasedLineDecoration<U> d : dec.getUnbasedLineDecorations(u)) {
+            dec.getUnbasedLineDecorations(u).forEach((d) -> {
                 double[] p = new double[3];
                 for(int i = 0; i < 3 && i < d.dest.length; i++)
                     p[i] = d.dest[i];
@@ -135,15 +136,15 @@ public class ResDisplay3D<U extends MultigradedElement<U>> extends JPanel implem
 
                 g.setColor(d.color);
                 g.drawLine(tp1[0], tp1[1], tp2[0], tp2[1]);
-            }
-
-        }
+            });
+        });
 
         
         /* draw vertices */
         g.setColor(Color.black);
-        for(Vertex v : vertexmap.values())
+        vertexmap.values().forEach((v) -> {
             g.drawRect(v.tp[0] - 1, v.tp[1] - 1, 3, 3);
+        });
     }
 
     @Override public void mouseDragged(MouseEvent evt)
@@ -248,7 +249,7 @@ public class ResDisplay3D<U extends MultigradedElement<U>> extends JPanel implem
         fr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         fr.setSize(1200,800);
         
-        ResDisplay3D<U> d = new ResDisplay3D<U>(dec);
+        ResDisplay3D<U> d = new ResDisplay3D<>(dec);
         fr.getContentPane().add(d);
 
         ControlPanel3D p = new ControlPanel3D(d);
@@ -287,11 +288,9 @@ class ControlPanel3D extends Box {
     {
         final JSpinner ret = new JSpinner(new SpinnerNumberModel(parent.bounds[i],0,1000,1));
 
-        ret.addChangeListener(new ChangeListener() {
-            public void stateChanged(ChangeEvent e) {
-                parent.bounds[i] = (Integer) ret.getValue();
-                parent.repaint();
-            }
+        ret.addChangeListener((ChangeEvent e) -> {
+            parent.bounds[i] = (Integer) ret.getValue();
+            parent.repaint();
         });
         
         Dimension smin = new Dimension(0,30);

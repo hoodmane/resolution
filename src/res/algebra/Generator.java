@@ -12,7 +12,7 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
     {
         this.deg = deg;
         this.idx = idx;
-        img = new DModSet<T>();
+        img = new DModSet<>();
     }
             
     @Override public int compareTo(Generator<T> b)
@@ -44,5 +44,9 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
         String ret = extraInfo;
         ret += "Image: "+img;
         return ret;
+    }
+
+    public String name() {
+        return String.format("%d-%d-%d",deg[0],deg[1],idx);
     }
 }

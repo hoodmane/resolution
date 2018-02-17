@@ -12,9 +12,9 @@ public class CofibHopf extends GradedModule<Sq>
     {
         this.i = i;
         /* XXX should follow the number of extra gradings on alg */
-        Generator<Sq> g = new Generator<Sq>(new int[] {-1,0,0}, 0);
-        d1 = new Dot<Sq>(g, Sq.UNIT);
-        d2 = new Dot<Sq>(g, Sq.HOPF[i]);
+        Generator<Sq> g = new Generator<>(new int[] {-1,0,0}, 0);
+        d1 = new Dot<>(g, Sq.UNIT);
+        d2 = new Dot<>(g, Sq.HOPF[i]);
     }
 
     @Override public Iterable<Dot<Sq>> basis(int deg)
@@ -26,7 +26,7 @@ public class CofibHopf extends GradedModule<Sq>
 
     @Override public DModSet<Sq> act(Dot<Sq> o, Sq sq)
     {
-        DModSet<Sq> ret = new DModSet<Sq>();
+        DModSet<Sq> ret = new DModSet<>();
         if(o.deg[1] == d1.deg[1] && sq.equals(Sq.UNIT))
             ret.add(d1,1);
         if(o.deg[1] == d2.deg[1] && sq.equals(Sq.UNIT))

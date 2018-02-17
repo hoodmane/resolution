@@ -4,5 +4,6 @@ public interface MultigradedElement<T> extends Comparable<T>
 {
     int[] deg();
     String extraInfo();
+    String name();
 }
 

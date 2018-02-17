@@ -20,8 +20,8 @@ public class CotorLiftingBackend
 
     private final GradedAlgebra<Sq> alg = new SteenrodAlgebra();
 
-    private Map<int[],CotorLiftingCellData> output3 = new TreeMap<int[],CotorLiftingCellData>(Multidegrees.multidegComparator);
-    private Map<int[],Collection<Generator<Sq>>> output2 = new TreeMap<int[],Collection<Generator<Sq>>>(Multidegrees.multidegComparator);
+    private Map<int[],CotorLiftingCellData> output3 = new TreeMap<>(Multidegrees.multidegComparator);
+    private Map<int[],Collection<Generator<Sq>>> output2 = new TreeMap<>(Multidegrees.multidegComparator);
 
 
     int posts = -1;
@@ -118,7 +118,7 @@ public class CotorLiftingBackend
             synchronized(output2) {
                 Collection<Generator<Sq>> c = output2.get(key);
                 if(c == null) {
-                    c = new ArrayList<Generator<Sq>>();
+                    c = new ArrayList<>();
                     output2.put(key, c);
                 }
 
@@ -160,8 +160,8 @@ public class CotorLiftingBackend
             }
         }
 
-        tasks = new PriorityBlockingQueue<CotorLiftingResTask>();
-        claims = new TreeSet<int[]>(Multidegrees.multidegComparator);
+        tasks = new PriorityBlockingQueue<>();
+        claims = new TreeSet<>(Multidegrees.multidegComparator);
         putTask(new CotorLiftingResTask(CotorLiftingResTask.COMPUTE, 0, 0, 0));
 
         for(int i = 0; i < Config.THREADS; i++)
@@ -194,7 +194,7 @@ public class CotorLiftingBackend
     
     /* math */
 
-    Map<Integer,GradedModule<Sq>> weightModules = new TreeMap<Integer,GradedModule<Sq>>();
+    Map<Integer,GradedModule<Sq>> weightModules = new TreeMap<>();
     private GradedModule<Sq> getWeightModule(int w)
     {
         GradedModule<Sq> ret = weightModules.get(w);
@@ -218,15 +218,16 @@ public class CotorLiftingBackend
     {
         GradedModule<Sq> mod = getWeightModule(w);
 
-        ModSet<Pair> ret = new ModSet<Pair>();
+        ModSet<Pair> ret = new ModSet<>();
 
         /* first term: a Sq^1 tens b */
         ret.add(new Pair(Sq.HOPF[0], b), 1);
 
         /* second term: a tens Sq^1 b */
         DModSet<Sq> secondmult = mod.act(b, Sq.HOPF[0]);
-        for(Entry<Dot<Sq>,Integer> ent : secondmult.entrySet())
+        secondmult.entrySet().forEach((ent) -> {
             ret.add(new Pair(Sq.UNIT, ent.getKey()), ent.getValue());
+        });
 
         return ret;
     }
@@ -244,9 +245,9 @@ public class CotorLiftingBackend
         if(s == 0) okbasis = module.basis_wrap(t);
         else       okbasis = olddat.kbasis;
 
-        Map<Dot<Sq>,DModSet<Sq>> list_x = new TreeMap<Dot<Sq>,DModSet<Sq>>();
-        Map<Dot<Sq>,DModSet<Sq>> list_dx = new TreeMap<Dot<Sq>,DModSet<Sq>>();
-        ArrayList<DModSet<Sq>> ker = new ArrayList<DModSet<Sq>>();
+        Map<Dot<Sq>,DModSet<Sq>> list_x = new TreeMap<>();
+        Map<Dot<Sq>,DModSet<Sq>> list_dx = new TreeMap<>();
+        ArrayList<DModSet<Sq>> ker = new ArrayList<>();
         /* loop over existing dots in this bidegree */
         for(int gt = s; gt < t; gt++) {
             if(Config.DEBUG && gens(s,gt,w) == null)
@@ -255,7 +256,7 @@ public class CotorLiftingBackend
 
             for(Generator<Sq> g : gens(s,gt,w)) {
                 for(Sq q : alg.basis(t-gt)) {
-                    DModSet<Sq> x = new DModSet<Sq>(new Dot<Sq>(g,q));
+                    DModSet<Sq> x = new DModSet<>(new Dot<>(g,q));
                     /* compute the image */
                     DModSet<Sq> dx;
                     if(s > 0) dx = g.img.times(q, alg);
@@ -294,14 +295,15 @@ public class CotorLiftingBackend
 
         if(Config.DEBUG) {
             System.out.println("Dump of image:");
-            for(Dot<Sq> d : list_x.keySet())
+            list_x.keySet().forEach((d) -> {
                 System.out.printf("%s : %s --> %s\n", d, list_x.get(d), list_dx.get(d));
+            });
         }
 
         
 
         /* now see how we're doing with respect to the old kernel. modifies okbasis elements */
-        ArrayList<Generator<Sq>> gens = new ArrayList<Generator<Sq>>();
+        ArrayList<Generator<Sq>> gens = new ArrayList<>();
         for(DModSet<Sq> k : okbasis) {
             if(Config.DEBUG) System.out.printf("kernel element %s ", k);
             /* reduce against the image */
@@ -328,12 +330,12 @@ public class CotorLiftingBackend
             /* haven't yet killed this kernel class -- add a generator */
             
             int[] deg = new int[] {s,t,w};
-            Generator<Sq> gen = new Generator<Sq>(deg, gens.size());
+            Generator<Sq> gen = new Generator<>(deg, gens.size());
             gen.extraInfo += String.format("Tridegree (s,t,u)=(%d,%d,%d)\n", s,w,2*t);
             gen.img = k;
 
             /* add this into the existing image */
-            list_x.put(k.lastKey(), new DModSet<Sq>(new Dot<Sq>(gen, alg.unit())));
+            list_x.put(k.lastKey(), new DModSet<>(new Dot<>(gen, alg.unit())));
             list_dx.put(k.lastKey(), k);
 
             gens.add(gen);
@@ -345,7 +347,7 @@ public class CotorLiftingBackend
         
 
         /* compute the resolution maps */
-        Map<Dot<Sq>,DModSet<Sq>> resmap = new TreeMap<Dot<Sq>,DModSet<Sq>>();
+        Map<Dot<Sq>,DModSet<Sq>> resmap = new TreeMap<>();
         Map<Dot<Sq>,DModSet<Sq>> lastresmap = null;
         if(s != 0) lastresmap = olddat.resmap;
 
@@ -353,32 +355,32 @@ public class CotorLiftingBackend
 
             DModSet<Sq> target;
             if(s == 0)
-                target = new DModSet<Sq>(pairb);
+                target = new DModSet<>(pairb);
             else {
 
                 /* map down in the other resolution */
                 ModSet<Pair> img = mapOtherRes(pairb,w);
 
                 /* map across using the previous map */
-                target = new DModSet<Sq>();
-                for(Entry<Pair,Integer> ent : img.entrySet()) {
+                target = new DModSet<>();
+                img.entrySet().forEach((ent) -> {
                     Pair p = ent.getKey();
                     DModSet<Sq> lift = resmap(s-1, t-p.a.deg(), w).get(p.b);
 //                    if(s == 1)
 //                        lift = lift.times(p.a, module);
 //                    else
-                        lift = lift.times(p.a, alg);
+                lift = lift.times(p.a, alg);
 
-                    for(Entry<Dot<Sq>,Integer> ent2 : lift.entrySet())
-                        target.add(ent2.getKey(), ent2.getValue() * ent.getValue());
-                }
+                for(Entry<Dot<Sq>,Integer> ent2 : lift.entrySet())
+                    target.add(ent2.getKey(), ent2.getValue() * ent.getValue());
+                });
 
                 if(Config.DEBUG)
                     System.out.printf("chain 1 \u2297 %s --> %s --> %s\n", pairb, img, target);
             }
 
             /* lift up the minimal resolution */
-            DModSet<Sq> lift = new DModSet<Sq>();
+            DModSet<Sq> lift = new DModSet<>();
             while(! target.isEmpty()) {
                 /* reduce against */
                 Map.Entry<Dot<Sq>,Integer> ent = target.lastEntry();
@@ -434,30 +436,31 @@ public class CotorLiftingBackend
         boolean doOutput = (s == posts && t == postt && w == postw);
 
         /* compute the dual mapping on generators */
-        Map<Generator<Sq>, DModSet<Sq>> invmap = new TreeMap<Generator<Sq>, DModSet<Sq>>();
-        for(Generator<Sq> g : gens(s,t,w))
-            invmap.put(g, new DModSet<Sq>());
+        Map<Generator<Sq>, DModSet<Sq>> invmap = new TreeMap<>();
+        gens(s,t,w).forEach((g) -> {
+            invmap.put(g, new DModSet<>());
+        });
 
-        for(Entry<Dot<Sq>, DModSet<Sq>> ent : resmap(s,t,w).entrySet()) {
-            for(Entry<Dot<Sq>, Integer> ent2 : ent.getValue().entrySet()) {
-                if(! ent2.getKey().sq.equals(Sq.UNIT)) continue;
+        resmap(s,t,w).entrySet().forEach((ent) -> {
+            ent.getValue().entrySet().stream().filter((ent2) -> !(! ent2.getKey().sq.equals(Sq.UNIT))).forEachOrdered((ent2) -> {
                 /* otherwise this dot is a generator */
                 DModSet<Sq> image = invmap.get(ent2.getKey().base);
                 image.add(ent.getKey(), ent2.getValue());
-            }
-        }
+            });
+        });
 
         /* compute the action of each q_I monomial on the other resolution */
-        Map<QMonom,DModSet<Sq>> monom_action = new TreeMap<QMonom,DModSet<Sq>>();
-        for(QMonom q : QMonom.basis(s,t,w)) 
-            monom_action.put(q, new DModSet<Sq>());
+        Map<QMonom,DModSet<Sq>> monom_action = new TreeMap<>();
+        QMonom.basis(s,t,w).forEach((q) -> { 
+            monom_action.put(q, new DModSet<>());
+        });
         for(Dot<Sq> o : enumerateOtherRes(s,t,w)) {
             /* TODO we can probably do this in a much more efficient way than computing iterated diagonals */
             ModSet<Sq[]> itd = iterated_diagonal(o.sq, w-1);
             if(Config.DEBUG) System.out.printf("%d-iterated diagonal of %s is %s\n", w, o.sq, itd.toString(sqArrayStringifier));
 
             /* for each term Sq^2^n1 Sq^2^n1-1 ... Sq^1 tens ... tens Sq^2^nr Sq^2^r-1 ... Sq^1, add o to [q_n1, ... q_nr] */
-            for(Entry<QMonom,DModSet<Sq>> ent : monom_action.entrySet()) {
+            monom_action.entrySet().forEach((ent) -> {
                 QMonom q = ent.getKey();
                 Sq[] key = new Sq[w];
                 for(int i = 0; i < w; i++) {
@@ -467,27 +470,27 @@ public class CotorLiftingBackend
                     key[w-i-1] = new Sq(sq);
                     q = q.reduce();
                 }
-
                 if(Config.DEBUG) System.out.printf("testing %s with %s\n", ent.getKey(), sqArrayStringifier.toString(key));
-
                 Integer coeff = itd.get(key);
-                if(coeff != null)
+                if (coeff != null) {
                     ent.getValue().put(o, coeff);
-            }
+                }
+            });
         }
 
         /* dump the q_I */
         if(Config.DEBUG) {
             System.out.println("dumping the q_I:");
-            for(Entry<QMonom,DModSet<Sq>> ent : monom_action.entrySet())
+            monom_action.entrySet().forEach((ent) -> {
                 System.out.printf("%s detects %s\n", ent.getKey(), ent.getValue());
+            });
         }
 
         /* register highest terms from the above */
-        Map<Dot<Sq>,ModSet<QMonom>> list_x = new TreeMap<Dot<Sq>,ModSet<QMonom>>();
-        Map<Dot<Sq>,DModSet<Sq>> list_dx = new TreeMap<Dot<Sq>,DModSet<Sq>>();
+        Map<Dot<Sq>,ModSet<QMonom>> list_x = new TreeMap<>();
+        Map<Dot<Sq>,DModSet<Sq>> list_dx = new TreeMap<>();
         for(QMonom q : monom_action.keySet()) {
-            ModSet<QMonom> x = new ModSet<QMonom>(q);
+            ModSet<QMonom> x = new ModSet<>(q);
             DModSet<Sq> dx = monom_action.get(q);
             while(! dx.isEmpty()) {
                 Dot<Sq> highest = dx.lastKey();
@@ -514,7 +517,7 @@ public class CotorLiftingBackend
             if(doOutput)
                 output += String.format("%s --> ", ent.getKey(), ent.getValue());
 
-            ModSet<QMonom> x = new ModSet<QMonom>();
+            ModSet<QMonom> x = new ModSet<>();
 
             while(! dx.isEmpty()) {
                 Dot<Sq> highest = dx.lastKey();
@@ -540,21 +543,19 @@ public class CotorLiftingBackend
     }
 
 
-    private static Comparator<Sq[]> sqArrayComparator = new Comparator<Sq[]>() {
-        @Override public int compare(Sq[] a, Sq[] b) {
-            int c = a.length - b.length;
+    private static Comparator<Sq[]> sqArrayComparator = (Sq[] a, Sq[] b) -> {
+        int c = a.length - b.length;
+        if(c != 0) return c;
+        for(int i = 0; i < a.length; i++) {
+            c = a[i].compareTo(b[i]);
             if(c != 0) return c;
-            for(int i = 0; i < a.length; i++) {
-                c = a[i].compareTo(b[i]);
-                if(c != 0) return c;
-            }
-            return 0;
         }
+        return 0;
     };
 
     private static ModSet<Sq[]> iterated_diagonal(Sq q, int w)
     {
-        ModSet<Sq[]> ret = new ModSet<Sq[]>(sqArrayComparator);
+        ModSet<Sq[]> ret = new ModSet<>(sqArrayComparator);
 
         if(w == 0) {
             ret.add(new Sq[] {q}, 1);
@@ -562,24 +563,22 @@ public class CotorLiftingBackend
         }
 
         ModSet<Sq[]> last = iterated_diagonal(q, w-1);
-        for(Entry<Sq[],Integer> ent : last.entrySet()) {
+        last.entrySet().forEach((ent) -> {
             Sq[] s = ent.getKey();
 
             int i = s.length - 1;
             ModSet<Sq[]> diag = filter_diagonal(s[i]);
-            for(Entry<Sq[],Integer> ent2 : diag.entrySet()) {
+            diag.entrySet().forEach((ent2) -> {
                 Sq[] newEntry = Arrays.copyOf(s, s.length+1);
                 newEntry[i] = ent2.getKey()[0];
                 newEntry[i+1] = ent2.getKey()[1];
-
-                if(newEntry[i+1].deg() < newEntry[i].deg())
-                    continue;
-                if(i != 0 && newEntry[i].deg() < newEntry[i-1].deg())
-                    continue;
-
-                ret.add(newEntry, ent2.getValue() * ent.getValue());
-            }
-        }
+                if (!(newEntry[i+1].deg() < newEntry[i].deg())) {
+                    if (!(i != 0 && newEntry[i].deg() < newEntry[i-1].deg())) {
+                        ret.add(newEntry, ent2.getValue() * ent.getValue());
+                    }
+                }
+            });
+        });
 
         System.out.printf("%d-itd diag of %s is %s\n", w, q, ret.toString(sqArrayStringifier));
 
@@ -593,7 +592,7 @@ public class CotorLiftingBackend
         ModSet<Sq[]> ret = filter_diagonal_cache.get(q);
         if(ret != null) return ret;
 
-        ret = new ModSet<Sq[]>(sqArrayComparator);
+        ret = new ModSet<>(sqArrayComparator);
 
         ModSet<Sq[]> orig = diagonal(q);
         for(Entry<Sq[],Integer> ent : orig.entrySet())
@@ -610,7 +609,7 @@ public class CotorLiftingBackend
         ModSet<Sq[]> ret = diagonal_cache.get(q);
         if(ret != null) return ret;
 
-        ret = new ModSet<Sq[]>(sqArrayComparator);
+        ret = new ModSet<>(sqArrayComparator);
 
         if(q.q.length == 0) {
             ret.add(new Sq[] { Sq.UNIT, Sq.UNIT }, 1);
@@ -649,32 +648,31 @@ public class CotorLiftingBackend
         return ret;
     }
 
-    private static Stringifier<Sq[]> sqArrayStringifier = new Stringifier<Sq[]>() {
-        @Override public String toString(Sq[] sql) {
-            if(sql.length == 0) return "1";
-
-            String ret = "";
-            boolean first = true;
-            for(Sq sq : sql) {
-                if(first) first = false;
-                else ret += " \u2297 ";
-                ret += sq.toString();
-            }
-
-            return ret;
+    private static Stringifier<Sq[]> sqArrayStringifier = (Sq[] sql) -> {
+        if(sql.length == 0) return "1";
+        
+        String ret = "";
+        boolean first = true;
+        for(Sq sq : sql) {
+            if(first) first = false;
+            else ret += " \u2297 ";
+            ret += sq.toString();
         }
+        
+        return ret;
     };
 
 
     /* admin */
+    @Override
     public Decorated<Generator<Sq>, MultigradedVectorSpace<Generator<Sq>>> getDecorated()
     {
-        CompoundDecorated<Generator<Sq>,MultigradedVectorSpace<Generator<Sq>>> dec = new CompoundDecorated<Generator<Sq>,MultigradedVectorSpace<Generator<Sq>>>(this);
+        CompoundDecorated<Generator<Sq>,MultigradedVectorSpace<Generator<Sq>>> dec = new CompoundDecorated<>(this);
 
-        Collection<DifferentialRule> diffrules = new ArrayList<DifferentialRule>();
+        Collection<DifferentialRule> diffrules = new ArrayList<>();
         diffrules.add(new DifferentialRule(new int[] {1,0,1}, new int[] {0,0,1}, Color.green));
         diffrules.add(new DifferentialRule(new int[] {3,1,-2}, new int[] {2,1,-2}, Color.red));
-        dec.add(new DifferentialDecorated<Generator<Sq>,MultigradedVectorSpace<Generator<Sq>>>(this, diffrules));
+        dec.add(new DifferentialDecorated<>(this, diffrules));
 
         /* TODO add product decorated */
 
@@ -705,6 +703,11 @@ public class CotorLiftingBackend
             System.out.println(q);*/
 
         System.exit(0);
+    }
+
+    @Override
+    public int totalGens() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 }
@@ -841,7 +844,7 @@ class QMonom implements Comparable<QMonom>
             else return Collections.emptyList();
         }
 
-        Collection<QMonom> ret = new ArrayList<QMonom>();
+        Collection<QMonom> ret = new ArrayList<>();
         int start = (base.length == 0) ? 0 : base.length - 1;
         for(int op = start;; op++) {
             int opdeg = (1<<op) - 1;

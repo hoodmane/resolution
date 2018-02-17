@@ -15,10 +15,10 @@ public class BrunerNotationModule extends GradedModule<Sq>
                elements of the module.
       TODO: refactor these to "dotsidx" ==> "gens" and  "dots" ==> "gensByDegree" or something.
    */
-    ArrayList<Dot<Sq>> dotsidx = new ArrayList<Dot<Sq>>();
-    Map<Integer,ArrayList<Dot<Sq>>> dots = new TreeMap<Integer,ArrayList<Dot<Sq>>>();
+    ArrayList<Dot<Sq>> dotsidx = new ArrayList<>();
+    Map<Integer,ArrayList<Dot<Sq>>> dots = new TreeMap<>();
 
-    Map<Dot<Sq>,Map<Integer,DModSet<Sq>>> actions = new TreeMap<Dot<Sq>,Map<Integer,DModSet<Sq>>>();
+    Map<Dot<Sq>,Map<Integer,DModSet<Sq>>> actions = new TreeMap<>();
 
     static <T> Collection<T> getRO(Map<Integer,ArrayList<T>> map, int i) {
         ArrayList<T> alist = map.get(i);
@@ -28,7 +28,7 @@ public class BrunerNotationModule extends GradedModule<Sq>
     static <T> ArrayList<T> getRW(Map<Integer,ArrayList<T>> map, int i) {
         ArrayList<T> alist = map.get(i);
         if(alist == null) {
-            ArrayList<T> ret = new ArrayList<T>(1);
+            ArrayList<T> ret = new ArrayList<>(1);
             map.put(i,ret);
             return ret;
         }
@@ -88,11 +88,11 @@ public class BrunerNotationModule extends GradedModule<Sq>
         for(int i = 0; i < n; i++) {
             int deg = Integer.parseInt(toks[i]);
             ArrayList<Dot<Sq>> adots = getRW(dots,deg);
-            Generator<Sq> g = new Generator<Sq>(new int[] {-1,deg,0},adots.size());
-            Dot<Sq> d = new Dot<Sq>(g, Sq.UNIT);
+            Generator<Sq> g = new Generator<>(new int[] {-1,deg,0},adots.size());
+            Dot<Sq> d = new Dot<>(g, Sq.UNIT);
             dotsidx.add(d);
             adots.add(d);
-            actions.put(d,new TreeMap<Integer,DModSet<Sq>>());
+            actions.put(d,new TreeMap<>());
         }
 
 
@@ -105,7 +105,7 @@ public class BrunerNotationModule extends GradedModule<Sq>
             int r = Integer.parseInt(toks[1]);
             int k = Integer.parseInt(toks[2]);
 
-            DModSet<Sq> set = new DModSet<Sq>();
+            DModSet<Sq> set = new DModSet<>();
 
             if(Config.P == 2) {
                 if(toks.length != 3 + k) {
@@ -137,11 +137,11 @@ public class BrunerNotationModule extends GradedModule<Sq>
         return getRO(dots,deg);
     }
 
-    DModSet<Sq> zero = new DModSet<Sq>();
+    DModSet<Sq> zero = new DModSet<>();
     @Override public DModSet<Sq> act(Dot<Sq> o, Sq sq)
     {
         if(sq.q.length == 0)
-            return new DModSet<Sq>(o);
+            return new DModSet<>(o);
         else if(sq.q.length == 1) {
 
             Map<Integer,DModSet<Sq>> map = actions.get(o);

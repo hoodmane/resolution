@@ -5,11 +5,11 @@ import java.util.*;
 
 public class CompoundDecorated<U extends MultigradedElement<U>, T extends MultigradedVectorSpace<U>> extends Decorated<U,T>
 {
-    private Collection<Decorated<U,T>> sub;
+    private final Collection<Decorated<U,T>> sub;
 
     public CompoundDecorated(T u) {
         super(u);
-        sub = new LinkedList<Decorated<U,T>>();
+        sub = new LinkedList<>();
     }
 
     public boolean add(Decorated<U,T> d)
@@ -24,25 +24,24 @@ public class CompoundDecorated<U extends MultigradedElement<U>, T extends Multig
 
     @Override public boolean isVisible(U u)
     {
-        for(Decorated<U,T> d : sub)
-            if(! d.isVisible(u))
-                return false;
-        return true;
+        return sub.stream().noneMatch((d) -> (! d.isVisible(u)));
     }
 
     @Override public Collection<BasedLineDecoration<U>> getBasedLineDecorations(U u)
     {
-        Collection<BasedLineDecoration<U>> ret = new ArrayList<BasedLineDecoration<U>>();
-        for(Decorated<U,T> d : sub)
+        Collection<BasedLineDecoration<U>> ret = new ArrayList<>();
+        sub.forEach((d) -> {
             ret.addAll(d.getBasedLineDecorations(u));
+        });
         return ret;
     }
 
     @Override public Collection<UnbasedLineDecoration<U>> getUnbasedLineDecorations(U u)
     {
-        Collection<UnbasedLineDecoration<U>> ret = new ArrayList<UnbasedLineDecoration<U>>();
-        for(Decorated<U,T> d : sub)
+        Collection<UnbasedLineDecoration<U>> ret = new ArrayList<>();
+        sub.forEach((d) -> {
             ret.addAll(d.getUnbasedLineDecorations(u));
+        });
         return ret;
     }
  }

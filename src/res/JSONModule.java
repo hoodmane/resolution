@@ -19,11 +19,12 @@ public class JSONModule extends GradedModule<Sq> {
       actions: a generator ==> a map from integers (presumably representing some P^n) ==> a DModSet which represents an Fp linear combination of 
                elements of the module.
    */
-
+    
     private Map<Integer,ArrayList<Dot<Sq>>> gens = new TreeMap<>();
     private Map<Dot<Sq>,Map<Integer,DModSet<Sq>>> actions = new TreeMap<>();
- 
-    /* Get the i-index of a map from Integers to Lists, but if the i-index does not exist, make an empty list, set the ith index equal to it, and return it */
+    
+    /* Get the i-index of a map from Integers to Lists, but if the i-index does not exist, populate
+       it with a new empty list, set the ith index equal to it, and return it */
     static <T> ArrayList<T> getAndInitializeIfNeeded(Map<Integer,ArrayList<T>> map, int i) {
         ArrayList<T> alist = map.get(i);
         if(alist == null) {
@@ -34,9 +35,7 @@ public class JSONModule extends GradedModule<Sq> {
         else return alist;
     }
 
- 
 
-    
     /* Match: P10(x1) or b(y) or Sq2(x0). Group 1: "P" or "b" or "Sq", Group 2: "10" or "" or "2", Group 3: "x1" or "y" or "x0" */
     private static final Pattern LHSPAT = Pattern.compile("\\s*([A-Za-z]*)(\\d*)\\s*\\(\\s*([\\w\\^]*)\\s*\\)\\s*");
     /* Match: 2 x1 or 2*x1 or 2x1. Group 1: "2" Group 2: "x1" */
@@ -44,8 +43,24 @@ public class JSONModule extends GradedModule<Sq> {
     
     private static final Pattern VARPAT = Pattern.compile("[A-Za-z]+[\\w\\^]*");
 
+    /**
+     * Construct a GradedModule by parsing a list of generators and relations. The generators and relations are gotten directly from
+     * the user from the configuration JSON file for the run, and the relations are given as a list of strings which need a fair amount of parsing.
+     * 
+     * @param generators A list of generators formatted as a map varName ==> degree 
+     * @param relations  A list of relations. Each relation is a string of the form "P^n(
+     * @throws ParseException 
+     */
     public JSONModule(Map<String,Integer> generators, List<String> relations) throws ParseException{
         /* Variable name ==> internal generator object */
+        if(generators==null){
+            generators = new TreeMap<String,Integer>();
+            generators.put("x", 0);
+        }
+        if(relations==null){
+            relations = new ArrayList<>();
+        }
+        
         Map<String,Dot<Sq>> variableMap = new TreeMap<>();
 
         for(Map.Entry<String, Integer> entry : generators.entrySet()){
@@ -172,4 +187,5 @@ public class JSONModule extends GradedModule<Sq> {
             return act(o, curr).times(next,this);
         }
     }
+
 }

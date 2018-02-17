@@ -65,17 +65,17 @@ public class SettingsDialog extends JDialog
         b_front.add(front_3d);
         
         Box b_alg = Box.createHorizontalBox();
-        algcombo = new JComboBox<String>(ALGEBRAS);
+        algcombo = new JComboBox<>(ALGEBRAS);
         b_alg.add(new JLabel("Algebra:"));
         b_alg.add(algcombo);
 
         Box b_mod = Box.createHorizontalBox();
-        modcombo = new JComboBox<String>(MODULES);
+        modcombo = new JComboBox<>(MODULES);
         b_mod.add(new JLabel("Module:"));
         b_mod.add(modcombo);
 
         Box b_prime = Box.createHorizontalBox();
-        prime = new JComboBox<Integer>(PRIMES);
+        prime = new JComboBox<>(PRIMES);
         b_prime.add(new JLabel("Prime:"));
         b_prime.add(prime);
 

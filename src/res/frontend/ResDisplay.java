@@ -173,10 +173,12 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel implemen
                         return d;
                     }).map((_item) -> 1).reduce(visible, Integer::sum);
                     int offset = -5 * (visible-1) / 2;
-                    for(U d : gens) if(frameVisibles.contains(d)) {
-                        int[] newpos = new int[] { cx + offset, cy - offset/2 };
-                        pos.put(d, newpos);
-                        offset += 5;
+                    for(U d : gens) { 
+                        if(frameVisibles.contains(d)) {
+                            int[] newpos = new int[] { cx + offset, cy - offset/2 };
+                            pos.put(d, newpos);
+                            offset += 5;
+                        }
                     }
                 }
             }
@@ -189,8 +191,8 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel implemen
             /* based */
             dec.getBasedLineDecorations(u).stream().filter((d) -> !(! frameVisibles.contains(d.dest))).map((d) -> {
                 g.setColor(d.color);
-                return d;
-            }).map((d) -> pos.get(d.dest)).forEachOrdered((p2) -> {
+                return pos.get(d.dest);
+            }).forEachOrdered((p2) -> {
                 g.drawLine(p1[0], p1[1], p2[0], p2[1]);
             });
             
@@ -207,7 +209,6 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel implemen
 
         /* draw dots */
         g.setColor(Color.black);
-//        for(int[] p : pos.values()) {
         frameVisibles.stream().map((u) -> pos.get(u)).forEachOrdered((p) -> {
             g.fillOval(p[0]-2, p[1]-2, 5, 5);
         });

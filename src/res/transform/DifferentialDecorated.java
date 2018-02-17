@@ -19,11 +19,11 @@ public class DifferentialDecorated<U extends MultigradedElement<U>, T extends Mu
 
     @Override public Collection<BasedLineDecoration<U>> getBasedLineDecorations(U u)
     {
-        Collection<BasedLineDecoration<U>> ret = new ArrayList<BasedLineDecoration<U>>();
+        Collection<BasedLineDecoration<U>> ret = new ArrayList<>();
 
         T und = underlying();
 
-        for(DifferentialRule rule : rules) {
+        rules.forEach((rule) -> {
             int[] i = Arrays.copyOf(rule.initial, rule.initial.length);
             for(int j = 0; j < i.length && j < u.deg().length; j++)
                 i[j] += u.deg()[j];
@@ -34,14 +34,14 @@ public class DifferentialDecorated<U extends MultigradedElement<U>, T extends Mu
                         System.out.print(k + ",");
                     System.out.println();
                 }
-                for(U o : und.gens(i)) {
-                    ret.add(new BasedLineDecoration<U>(u, o, rule.color)); 
-                }
+                und.gens(i).forEach((o) -> {
+                    ret.add(new BasedLineDecoration<>(u, o, rule.color));
+                });
 
                 for(int j = 0; j < i.length; j++)
                     i[j] += rule.step[j];
             }
-        }
+        });
         return ret;
     }
 

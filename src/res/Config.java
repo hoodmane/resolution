@@ -13,7 +13,7 @@ public class Config
     public static final boolean DEBUG = false;
     public static final boolean DEBUG_THREADS = false;
     public static final boolean STDOUT = false;
-    public static final boolean TIMING = true;
+    public static final boolean TIMING = false;
 
     /* the following aren't actually config */
     public static int Q;

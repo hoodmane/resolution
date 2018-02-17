@@ -1,8 +1,5 @@
 package res.algebra;
 
-import res.*;
-import java.util.*;
-
 public class AnElement implements GradedElement<AnElement>
 {
     static final int[] EGR = {};

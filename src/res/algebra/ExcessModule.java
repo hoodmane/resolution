@@ -14,18 +14,17 @@ public class ExcessModule extends GradedModule<Sq>
     public ExcessModule(int k, GradedAlgebra<Sq> alg)
     {
         /* XXX the extra-grading behavior is probably very broken */ 
-        g = new Generator<Sq>(new int[] {-1,0,k}, 0);
+        g = new Generator<>(new int[] {-1,0,k}, 0);
         this.alg = alg;
         this.K = k;
     }
 
     @Override public Iterable<Dot<Sq>> basis(int n)
     {
-        Collection<Dot<Sq>> ret = new ArrayList<Dot<Sq>>();
-        for(int[] q : SteenrodAlgebra.part_p(n,n)) {
-            Sq s = new Sq(q);
+        Collection<Dot<Sq>> ret = new ArrayList<>();
+        for(Sq s : alg.basis(n)) {
             if(s.excess() <= K)
-                ret.add(new Dot<Sq>(g, s)); 
+                ret.add(new Dot<>(g, s)); 
         }
 
         return ret;
@@ -34,10 +33,10 @@ public class ExcessModule extends GradedModule<Sq>
     @Override public DModSet<Sq> act(Dot<Sq> a, Sq b)
     {
         ModSet<Sq> prelim = alg.times(b, a.sq); /* left module */
-        DModSet<Sq> ret = new DModSet<Sq>();
+        DModSet<Sq> ret = new DModSet<>();
         for(Map.Entry<Sq,Integer> ent : prelim.entrySet()) 
             if(ent.getKey().excess() <= K)
-                ret.add(new Dot<Sq>(g, ent.getKey()), ent.getValue());
+                ret.add(new Dot<>(g, ent.getKey()), ent.getValue());
         return ret;
     }
 

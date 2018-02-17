@@ -1,7 +1,6 @@
 package res.transform;
 
 import res.algebra.*;
-import java.awt.Color;
 import java.util.*;
 
 public class ProductDecorated<U extends GradedElement<U>, T extends MultigradedAlgebra<Generator<U>>> extends Decorated<Generator<U>,T>
@@ -17,12 +16,12 @@ public class ProductDecorated<U extends GradedElement<U>, T extends MultigradedA
 
     @Override public Collection<BasedLineDecoration<Generator<U>>> getBasedLineDecorations(Generator<U> g)
     {
-        ArrayList<BasedLineDecoration<Generator<U>>> ret = new ArrayList<BasedLineDecoration<Generator<U>>>();
+        ArrayList<BasedLineDecoration<Generator<U>>> ret = new ArrayList<>();
 
         for(ProductRule rule : rules) if(!rule.hide) {
             for(Dot<U> dot : g.img.keySet()) {
                 if(dot.sq.equals(rule.trigger))
-                    ret.add(new BasedLineDecoration<Generator<U>>(g, dot.base, rule.color));
+                    ret.add(new BasedLineDecoration<>(g, dot.base, rule.color));
             }
         }
 

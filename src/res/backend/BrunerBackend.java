@@ -17,21 +17,33 @@ public class BrunerBackend<T extends GradedElement<T>>
 
 
     private final GradedAlgebra<T> alg;
-    private GradedModule<T> module;
+    private final GradedModule<T> module;
 
     private Map<int[],Set<Generator<T>>> gensByMultidegree = new TreeMap<>(Multidegrees.multidegComparator);
     private Map<int[],BrunerCellData<T>> output = new TreeMap<>(Multidegrees.multidegComparator);
-
+    
     private int computedStems = 0;
+    private int totalGens = 0;
+    
+    private Callback doneCallback;
     
     public boolean isDone(){
          return computedStems - 1 == Config.T_CAP;
     }
-
-    public BrunerBackend(GradedAlgebra<T> alg) {
-        this.alg = alg;
-        module = new Sphere<>(alg.unit());
+    
+    public void registerDoneCallback(Callback f){
+        doneCallback = f;
     }
+    
+    public int totalGens(){
+        return totalGens;
+    }
+
+    public BrunerBackend(GradedAlgebra<T> alg,GradedModule<T> m) {
+        this.alg = alg;
+        this.module = m;
+    }
+    
 
 
     /* methods implementing MultigradedAlgebra */
@@ -149,6 +161,7 @@ public class BrunerBackend<T extends GradedElement<T>>
                 s.add(g);
                 gensByMultidegree.put(deg,s);
             }
+            totalGens++;
         }
     }
 
@@ -342,7 +355,11 @@ public class BrunerBackend<T extends GradedElement<T>>
         
         if(s == t){
             computedStems ++;
-            System.out.println(computedStems);
+            if(isDone()){
+                if(this.doneCallback !=null){
+                    doneCallback.call();
+                }
+            }
         }
     
         if(Config.TIMING && s == t) {
@@ -350,8 +367,8 @@ public class BrunerBackend<T extends GradedElement<T>>
             double log = Math.log(elapsed);
             double score = log / t; 
             Runtime run = Runtime.getRuntime();
-            //System.out.printf("t=%d elapsed=%dms log/t=%f mem=%dM/%dM\n",
-            //    t, elapsed, score, (run.maxMemory() - run.freeMemory())>>20, run.maxMemory()>>20);
+            System.out.printf("t=%d elapsed=%dms log/t=%f mem=%dM/%dM\n",
+                t, elapsed, score, (run.maxMemory() - run.freeMemory())>>20, run.maxMemory()>>20);
         }
 
         /* kick off the second task */
@@ -362,12 +379,6 @@ public class BrunerBackend<T extends GradedElement<T>>
     
 
     /* admin */
-
-    public void setModule(GradedModule<T> m)
-    {
-        Main.die_if(isComputed(0,0), "Attempted to change resolving module after computation began.");
-        module = m;
-    }
 
     @Override
     public Decorated<Generator<T>, MultigradedAlgebra<Generator<T>>> getDecorated()

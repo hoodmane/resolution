@@ -11,12 +11,13 @@ import java.util.List;
 
 public class JSONSpecification {
     public int prime;
+    public String algebra;
     public Map<String,Integer> generators;
     public List<String> relations;
-    public int T_CAP;
+    public int max_stem;
+    public String tex_output;
     
     public static JSONSpecification loadFile(String filename) throws IOException, ParseException {
-        System.out.println("Current working directory : " + filename);
         try(Reader reader = new FileReader(filename)){
             Gson gson = new GsonBuilder().create();
             return gson.fromJson(reader, JSONSpecification.class);

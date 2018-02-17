@@ -11,9 +11,10 @@ public abstract class MultigradedVectorSpace<T extends MultigradedElement<T>> im
     public final static int STATE_PARTIAL = 3;
     public final static int STATE_DONE = 4;
 
-    private Set<PingListener> listeners = new HashSet<PingListener>();
+    private final Set<PingListener> listeners = new HashSet<>();
 
     public abstract int num_gradings();
+    public abstract int totalGens();
     public abstract int getState(int[] i); /* what's the state of computation for the given multi-index */
     public abstract Collection<T> gens(int[] i);
     public void start() { }
@@ -26,8 +27,9 @@ public abstract class MultigradedVectorSpace<T extends MultigradedElement<T>> im
         listeners.remove(l);
     }
     @Override public void ping(int[] i) {
-        for(PingListener l : listeners)
+        listeners.forEach((l) -> {
             l.ping(i);
+        });
     }
 }
 

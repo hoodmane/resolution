@@ -10,9 +10,12 @@ import javax.swing.JOptionPane;
 
 import java.text.ParseException;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Main {
     
+    private static String texOutputFilename;
     public static void die_if(boolean test, String fail)
     {
         if(test) {
@@ -30,7 +33,9 @@ public class Main {
 	System.exit(1);
     }
 
+    private static final Pattern AnALGNAME_PAT = Pattern.compile("\\s*A\\(?\\s*(\\d*)\\s*\\)?\\s*$");
     static SettingsDialog sd;
+    
     public static void main(String[] args)
     {
 	if(args.length>0) {
@@ -45,10 +50,32 @@ public class Main {
               quit(e);
               return;
            }
-           System.out.println(spec.T_CAP);
-	   GradedAlgebra<Sq> steen = new SteenrodAlgebra();
-	   ResMath.calcInverses();
-	   startBruner(steen, sqmod);
+           ResMath.calcInverses();
+           texOutputFilename = spec.tex_output;
+           if(spec.max_stem > 0){
+               Config.T_CAP = spec.max_stem;
+           }
+           Matcher match;
+           if(spec.algebra == null || "steenrod".equals(spec.algebra.toLowerCase())){
+               	startBruner(new SteenrodAlgebra(), sqmod);
+           } else if("P".equals(spec.algebra)) {
+                startBruner(new EvenSteenrodAlgebra(), sqmod);
+           } else if((match = AnALGNAME_PAT.matcher(spec.algebra)).find()) {
+                int n;
+                try {
+                    n = Integer.parseInt(match.group(1));
+//                    System.out.println("n: " + n);
+                    startBruner(new AnAlgebra(n),new AnModuleWrapper(sqmod));
+                } catch (NumberFormatException e) {
+                    if("".equals(match.group(1))){
+                        startBruner(new SteenrodAlgebra(), sqmod);
+                    } else {
+                        quit(new ParseException("Algebra " + spec.algebra + " not recognized." ,0));
+                    }
+                }
+           }
+
+
 	} else {
             String s;
             sd = new SettingsDialog();
@@ -102,7 +129,8 @@ public class Main {
                         try {
                             exct = Integer.parseInt(excstr);
                         } catch(NumberFormatException e) {}
-                    }       steen = new SteenrodAlgebra();
+                    }       
+                    steen = new SteenrodAlgebra();
                     sqmod = new ExcessModule(exct,steen);
                     break;
                 default:
@@ -149,10 +177,9 @@ public class Main {
     static <T extends GradedElement<T>> void startBruner(GradedAlgebra<T> alg, GradedModule<T> mod)
     {
         /* backend */
-        BrunerBackend<T> back = new BrunerBackend<>(alg);
-        back.setModule(mod);
+        BrunerBackend<T> back = new BrunerBackend<>(alg,mod);
         Decorated<Generator<T>, ? extends MultigradedVectorSpace<Generator<T>>> dec = back.getDecorated();
-
+        back.registerDoneCallback(() -> {new ExportToTex(dec).writeToFile("tex/"+texOutputFilename);});
        /* frontend *//*
         String s = sd.front.getSelection().getActionCommand();
         if(s == SettingsDialog.FRONT3D)
