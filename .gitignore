@@ -1,5 +1,8 @@
 # binaries and environment
 bin/
+build/
+dist/
+nbproject/
 resolution.jar
 *.zip
 
@@ -18,3 +21,6 @@ aux/
 stage/
 publish
 
+/nbproject/private/
+/build/
+/dist/

@@ -10,7 +10,7 @@ public class SteenrodAlgebra implements GradedAlgebra<Sq>
 
     @Override public Iterable<Sq> basis(int n)
     {
-        Collection<Sq> ret = new ArrayList<Sq>();
+        Collection<Sq> ret = new ArrayList<>();
         for(int[] q : part_p(n,n))
             ret.add(new Sq(q));
 
@@ -29,7 +29,7 @@ public class SteenrodAlgebra implements GradedAlgebra<Sq>
 
     @Override public List<Sq> distinguished()
     {
-        ArrayList<Sq> ret = new ArrayList<Sq>();
+        ArrayList<Sq> ret = new ArrayList<>();
         ret.add(Sq.HOPF[0]);
         ret.add(Sq.HOPF[1]);
         ret.add(Sq.HOPF[2]);
@@ -43,7 +43,7 @@ public class SteenrodAlgebra implements GradedAlgebra<Sq>
         return 0;
     }
 
-    private static Map<Integer,Iterable<int[]>> part_cache = new TreeMap<Integer,Iterable<int[]>>();
+    private static final Map<Integer,Iterable<int[]>> PART_CACHE = new TreeMap<Integer,Iterable<int[]>>();
     private static Integer part_cache_key(int n, int max) {
         return (Config.P << 28) ^ (n << 14) ^ max;
     }
@@ -60,10 +60,10 @@ public class SteenrodAlgebra implements GradedAlgebra<Sq>
         if(max == 0) return Collections.emptyList(); /* no solutions */
 
         /* cache */
-        Iterable<int[]> ret0 = part_cache.get(part_cache_key(n,max));
+        Iterable<int[]> ret0 = PART_CACHE.get(part_cache_key(n,max));
         if(ret0 != null) return ret0;
 
-        Collection<int[]> ret = new ArrayList<int[]>();
+        Collection<int[]> ret = new ArrayList<>();
 
         for(int i = n * (Config.P-1) / (Config.P * Config.Q) * Config.Q; i <= max; i += Config.Q) {
             /* try P^i */
@@ -85,7 +85,7 @@ public class SteenrodAlgebra implements GradedAlgebra<Sq>
             }
         }
 
-        part_cache.put(part_cache_key(n,max), ret);
+        PART_CACHE.put(part_cache_key(n,max), ret);
 
         return ret;
     }

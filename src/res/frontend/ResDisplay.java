@@ -1,6 +1,5 @@
 package res.frontend;
 
-import res.*;
 import res.algebra.*;
 import res.transform.*;
 
@@ -134,8 +133,8 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel implemen
 
 
         /* assign dots a location; at this point we definitively decide what's visible */
-        Set<U> frameVisibles = new TreeSet<U>();
-        TreeMap<U,int[]> pos = new TreeMap<U,int[]>();
+        Set<U> frameVisibles = new TreeSet<>();
+        TreeMap<U,int[]> pos = new TreeMap<>();
         for(int x = min_x_visible; x <= max_x_visible; x++) {
             for(int y = min_y_visible; y <= max_y_visible; y++) {
                 int cx = getcx(x);
@@ -169,10 +168,10 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel implemen
 
                 int visible = 0;
                 synchronized(gens) {
-                    for(U d : gens) if(isVisible(d)) {
+                    visible = gens.stream().filter((d) -> (isVisible(d))).map((d) -> {
                         frameVisibles.add(d);
-                        visible++;
-                    }
+                        return d;
+                    }).map((_item) -> 1).reduce(visible, Integer::sum);
                     int offset = -5 * (visible-1) / 2;
                     for(U d : gens) if(frameVisibles.contains(d)) {
                         int[] newpos = new int[] { cx + offset, cy - offset/2 };
@@ -184,34 +183,34 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel implemen
         }
 
         /* draw decorations */
-        for(U u : frameVisibles) {
+        frameVisibles.forEach((u) -> {
             int[] p1 = pos.get(u);
 
             /* based */
-            for(BasedLineDecoration<U> d : dec.getBasedLineDecorations(u)) {
-                if(! frameVisibles.contains(d.dest))
-                    continue;
+            dec.getBasedLineDecorations(u).stream().filter((d) -> !(! frameVisibles.contains(d.dest))).map((d) -> {
                 g.setColor(d.color);
-                int[] p2 = pos.get(d.dest);
+                return d;
+            }).map((d) -> pos.get(d.dest)).forEachOrdered((p2) -> {
                 g.drawLine(p1[0], p1[1], p2[0], p2[1]);
-            }
+            });
             
             /* unbased */
-            for(UnbasedLineDecoration<U> d : dec.getUnbasedLineDecorations(u)) {
+            dec.getUnbasedLineDecorations(u).stream().map((d) -> {
                 g.setColor(d.color);
+                return d;
+            }).forEachOrdered((d) -> {
                 int destx = getcx(d.dest[0]);
                 int desty = getcy(d.dest[1]);
                 g.drawLine(p1[0], p1[1], destx, desty);
-            }
-        }
+            });
+        });
 
         /* draw dots */
         g.setColor(Color.black);
 //        for(int[] p : pos.values()) {
-        for(U u : frameVisibles) {
-            int[] p = pos.get(u);
+        frameVisibles.stream().map((u) -> pos.get(u)).forEachOrdered((p) -> {
             g.fillOval(p[0]-2, p[1]-2, 5, 5);
-        }
+        });
 
         /* draw axes */
         final int MARGIN_WID = 30;
@@ -324,7 +323,7 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel implemen
         fr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         fr.setSize(1200,800);
         
-        ResDisplay<U> d = new ResDisplay<U>(back);
+        ResDisplay<U> d = new ResDisplay<>(back);
         fr.getContentPane().add(d, BorderLayout.CENTER);
         
         fr.getContentPane().add(new ControlPanel2D(d), BorderLayout.EAST);
@@ -352,26 +351,21 @@ class ControlPanel2D extends Box {
             final JSpinner s1 = new JSpinner(new SpinnerNumberModel(parent.minfilt[i],0,1000,1));
             final JSpinner s2 = new JSpinner(new SpinnerNumberModel(parent.maxfilt[i],0,1000,1));
 
-            s1.addChangeListener(new ChangeListener() {
-                public void stateChanged(ChangeEvent e) {
-                    parent.minfilt[icopy] = (Integer) s1.getValue();
-                    parent.setSelected(parent.selx, parent.sely);
-                    parent.repaint();
-                }
+            s1.addChangeListener((ChangeEvent e) -> {
+                parent.minfilt[icopy] = (Integer) s1.getValue();
+                parent.setSelected(parent.selx, parent.sely);
+                parent.repaint();
             });
             
-            s2.addChangeListener(new ChangeListener() {
-                public void stateChanged(ChangeEvent e) {
-                    parent.maxfilt[icopy] = (Integer) s2.getValue();
-                    parent.setSelected(parent.selx, parent.sely);
-                    parent.repaint();
-                }
+            s2.addChangeListener((ChangeEvent e) -> {
+                parent.maxfilt[icopy] = (Integer) s2.getValue();
+                parent.setSelected(parent.selx, parent.sely);
+                parent.repaint();
             });
 
             if(i == 2) {
                 KeyboardFocusManager.getCurrentKeyboardFocusManager()
-                    .addKeyEventDispatcher(new KeyEventDispatcher() {
-                    @Override public boolean dispatchKeyEvent(KeyEvent e) {
+                    .addKeyEventDispatcher((KeyEvent e) -> {
                         if(e.getID() != KeyEvent.KEY_PRESSED)
                             return false;
                         switch(e.getKeyCode()) {
@@ -386,7 +380,6 @@ class ControlPanel2D extends Box {
                             default:
                                 return false;
                         }
-                    }
                 });
             }
 

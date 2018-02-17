@@ -6,39 +6,12 @@ import java.util.ArrayList;
 import java.util.*;
 import res.algebra.Dot;
 import res.algebra.*;
-import res.Config;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import java.io.IOException;
-import java.io.FileReader;
-import java.io.Reader;
 
 import java.text.ParseException;
 
-class JSONModuleSpecification {
-    public int prime;
-    public Map<String,Integer> generators;
-    public List<String> relations;
-  
-    @Override
-    public String toString() {
- 	String ret;
-	ret = "prime: " + Integer.toString(prime) + "\n";
-	ret += "generators: \n";	
-	for(Map.Entry<String, Integer> entry : generators.entrySet()){
-            ret+= entry.getKey() + " : " + Integer.toString(entry.getValue()) + "\n"; 
-	}
-	ret += "relations: \n";
- 	for(String r : relations){
-	   ret += r + "\n";
-	}
-        return ret;
-    }
-}
 
 public class JSONModule extends GradedModule<Sq> {
-    public final int prime;
 
    /* We make a Generator<Sq> for each generator and then embed each in a Dot<Sq>.
       A Dot<Sq> is a pair, an element of the steenrod algebra (a Sq) and a Generator<Sq> (which has an integer id and a degree).
@@ -47,56 +20,46 @@ public class JSONModule extends GradedModule<Sq> {
                elements of the module.
    */
 
-    private Map<Integer,ArrayList<Dot<Sq>>> gens = new TreeMap<Integer,ArrayList<Dot<Sq>>>();
-    private Map<Dot<Sq>,Map<Integer,DModSet<Sq>>> actions = new TreeMap<Dot<Sq>,Map<Integer,DModSet<Sq>>>();
+    private Map<Integer,ArrayList<Dot<Sq>>> gens = new TreeMap<>();
+    private Map<Dot<Sq>,Map<Integer,DModSet<Sq>>> actions = new TreeMap<>();
  
     /* Get the i-index of a map from Integers to Lists, but if the i-index does not exist, make an empty list, set the ith index equal to it, and return it */
     static <T> ArrayList<T> getAndInitializeIfNeeded(Map<Integer,ArrayList<T>> map, int i) {
         ArrayList<T> alist = map.get(i);
         if(alist == null) {
-            ArrayList<T> ret = new ArrayList<T>(1);
+            ArrayList<T> ret = new ArrayList<>(1);
             map.put(i,ret);
             return ret;
         }
         else return alist;
     }
 
-    public static GradedModule<Sq> loadFromFile(String filename) throws IOException, ParseException {
-        try(Reader reader = new FileReader(filename)){
-            Gson gson = new GsonBuilder().create();
-            JSONModuleSpecification spec = gson.fromJson(reader, JSONModuleSpecification.class);
-	    return new JSONModule(spec.prime,spec.generators,spec.relations);
-        }
-    }
+ 
 
     
     /* Match: P10(x1) or b(y) or Sq2(x0). Group 1: "P" or "b" or "Sq", Group 2: "10" or "" or "2", Group 3: "x1" or "y" or "x0" */
-    private static final Pattern LHSpat = Pattern.compile("\\s*([A-Za-z]*)(\\d*)\\s*\\(\\s*([\\w\\^]*)\\s*\\)\\s*");
+    private static final Pattern LHSPAT = Pattern.compile("\\s*([A-Za-z]*)(\\d*)\\s*\\(\\s*([\\w\\^]*)\\s*\\)\\s*");
     /* Match: 2 x1 or 2*x1 or 2x1. Group 1: "2" Group 2: "x1" */
-    private static final Pattern termPat = Pattern.compile("(\\d*)\\s*\\*?\\s*([\\w\\^]*)");
+    private static final Pattern TERMPAT = Pattern.compile("(\\d*)\\s*\\*?\\s*([\\w\\^]*)");
     
-    private static final Pattern varPat = Pattern.compile("[A-Za-z]+[\\w\\^]*");
+    private static final Pattern VARPAT = Pattern.compile("[A-Za-z]+[\\w\\^]*");
 
-    private JSONModule(int p, Map<String,Integer> generators, List<String> relations) throws ParseException{
-	prime  = p;
-        Config.P = p;
-        Config.Q = 2 * (Config.P - 1);
-        int dimension = 0;
+    public JSONModule(Map<String,Integer> generators, List<String> relations) throws ParseException{
         /* Variable name ==> internal generator object */
-        Map<String,Dot<Sq>> variableMap = new TreeMap<String,Dot<Sq>>();
+        Map<String,Dot<Sq>> variableMap = new TreeMap<>();
 
         for(Map.Entry<String, Integer> entry : generators.entrySet()){
             String varName = entry.getKey();
-            if(!varPat.matcher(varName).matches()){
+            if(!VARPAT.matcher(varName).matches()){
                throw new ParseException("Invalid variable name \"" + varName + "\"",0);
             }  
             int deg = entry.getValue();
             ArrayList<Dot<Sq>> gensEntry = getAndInitializeIfNeeded(gens,deg);
-            Generator<Sq> g = new Generator<Sq>(new int[] {-1,deg,0},gensEntry.size());
-            Dot<Sq> d = new Dot<Sq>(g, Sq.UNIT);
+            Generator<Sq> g = new Generator<>(new int[] {-1,deg,0},gensEntry.size());
+            Dot<Sq> d = new Dot<>(g, Sq.UNIT);
             variableMap.put(varName,d);
             gensEntry.add(d);
-            actions.put(d,new TreeMap<Integer,DModSet<Sq>>());
+            actions.put(d,new TreeMap<>());
         }
     
         for(final ListIterator<String> it = relations.listIterator(); it.hasNext();){
@@ -115,7 +78,7 @@ public class JSONModule extends GradedModule<Sq> {
             }
             String LHS = eqSplit[0].trim();
             String RHS = eqSplit[1].trim();
-	    Matcher LHSmatcher = LHSpat.matcher(LHS); 
+	    Matcher LHSmatcher = LHSPAT.matcher(LHS); 
 	    if(!LHSmatcher.find()){
               throw new ParseException(LHSErrorString,0);
             }
@@ -138,7 +101,7 @@ public class JSONModule extends GradedModule<Sq> {
 	      case "Sq" : 
                  break;
               case "P":
-                 n*=2*prime-2;
+                 n*=Config.Q;
                  break;
               case "b":
                  n=1;
@@ -156,10 +119,10 @@ public class JSONModule extends GradedModule<Sq> {
              if(!variableMap.containsKey(LHSmatcher.group(3)))
                  throw new ParseException("Unknown variable \"" + LHSmatcher.group(3) + "\" in " + relationInfo,1);
              Dot<Sq> inputVariable = variableMap.get(LHSmatcher.group(3));
-             DModSet<Sq> outputSet = new DModSet<Sq>();
+             DModSet<Sq> outputSet = new DModSet<>();
              for(String term : RHS.split("\\+")){
                  term = term.trim();
-                 Matcher termMatcher = termPat.matcher(term);
+                 Matcher termMatcher = TERMPAT.matcher(term);
                  if(!termMatcher.find()){
                     throw new ParseException("Invalid term " + term + " in " + relationInfo,0);
                  }
@@ -185,11 +148,11 @@ public class JSONModule extends GradedModule<Sq> {
         else return alist;
     }
 
-    DModSet<Sq> zero = new DModSet<Sq>();
+    DModSet<Sq> zero = new DModSet<>();
     @Override public DModSet<Sq> act(Dot<Sq> o, Sq sq)
     {
         if(sq.q.length == 0)
-            return new DModSet<Sq>(o);
+            return new DModSet<>(o);
         else if(sq.q.length == 1) {
 
             Map<Integer,DModSet<Sq>> map = actions.get(o);
@@ -203,7 +166,7 @@ public class JSONModule extends GradedModule<Sq> {
 
         } else {
             int[] sqcopy = new int[sq.q.length-1];
-            for(int i = 0; i < sq.q.length-1; i++) sqcopy[i] = sq.q[i];
+            System.arraycopy(sq.q, 0, sqcopy, 0, sq.q.length-1);
             Sq next = new Sq(sqcopy);
             Sq curr = new Sq(sq.q[sq.q.length-1]);
             return act(o, curr).times(next,this);

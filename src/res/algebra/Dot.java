@@ -32,6 +32,7 @@ public class Dot<T extends GradedElement<T>> implements Comparable<Dot<T>>
         }
         return ret;
     }
+    
     @Override public boolean equals(Object o)
     {
         Dot<?> d = (Dot<?>) o;

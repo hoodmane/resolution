@@ -68,10 +68,11 @@ public class Matrices
             return;
         }
 
-        for(int i = 0; i < mat.length; i++) {
+        for (int[] mat1 : mat) {
             System.out.println();
-            for(int j = 0; j < mat[0].length; j++)
-                System.out.printf("%2d ", mat[i][j]);
+            for (int j = 0; j < mat[0].length; j++) {
+                System.out.printf("%2d ", mat1[j]);
+            }
         }
         System.out.println();
     }

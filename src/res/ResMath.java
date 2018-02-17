@@ -14,12 +14,12 @@ public final class ResMath
         return ((~a) & b) == 0;
     }
 
-    private static Map<Integer,Integer> binom_cache = new TreeMap<Integer,Integer>();
+    private static final Map<Integer,Integer> BINOM_CACHE = new TreeMap<Integer,Integer>();
     private static Integer binom_cache_key(int a, int b) { return (a<<16) | b; }
     public static int binom_p(int a, int b)
     {
         Integer s = binom_cache_key(a,b);
-        Integer i = binom_cache.get(s);
+        Integer i = BINOM_CACHE.get(s);
         if(i != null) return i;
 
         int ret;
@@ -29,7 +29,7 @@ public final class ResMath
             ret = 1;
         else ret = dmod(binom_p(a-1,b) + binom_p(a-1,b-1));
 
-        binom_cache.put(s,ret);
+        BINOM_CACHE.put(s,ret);
         return ret;
     }
 

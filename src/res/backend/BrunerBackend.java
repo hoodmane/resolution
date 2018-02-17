@@ -19,8 +19,8 @@ public class BrunerBackend<T extends GradedElement<T>>
     private final GradedAlgebra<T> alg;
     private GradedModule<T> module;
 
-    private Map<int[],Set<Generator<T>>> gensByMultidegree = new TreeMap<int[],Set<Generator<T>>>(Multidegrees.multidegComparator);
-    private Map<int[],BrunerCellData<T>> output = new TreeMap<int[],BrunerCellData<T>>(Multidegrees.multidegComparator);
+    private Map<int[],Set<Generator<T>>> gensByMultidegree = new TreeMap<>(Multidegrees.multidegComparator);
+    private Map<int[],BrunerCellData<T>> output = new TreeMap<>(Multidegrees.multidegComparator);
 
     private int computedStems = 0;
     
@@ -30,7 +30,7 @@ public class BrunerBackend<T extends GradedElement<T>>
 
     public BrunerBackend(GradedAlgebra<T> alg) {
         this.alg = alg;
-        module = new Sphere<T>(alg.unit());
+        module = new Sphere<>(alg.unit());
     }
 
 
@@ -98,12 +98,13 @@ public class BrunerBackend<T extends GradedElement<T>>
         if(dgens == null)
             return null;
 
-        ModSet<Generator<T>> ret = new ModSet<Generator<T>>();
-        for(Generator<T> g : dgens) {
+        ModSet<Generator<T>> ret = new ModSet<>();
+        dgens.forEach((g) -> {
             Integer i = g.img.get(op);
-            if(i == null) continue;
-            ret.add(g, i * coeff);
-        }
+            if (!(i == null)) {
+                ret.add(g, i * coeff);
+            }
+        });
         
         return ret;
     }
@@ -144,7 +145,7 @@ public class BrunerBackend<T extends GradedElement<T>>
             if(s != null)
                 s.add(g);
             else {
-                s = new TreeSet<Generator<T>>();
+                s = new TreeSet<>();
                 s.add(g);
                 gensByMultidegree.put(deg,s);
             }
@@ -161,8 +162,8 @@ public class BrunerBackend<T extends GradedElement<T>>
     {
         if(Config.TIMING) start = System.currentTimeMillis();
 
-        tasks = new PriorityBlockingQueue<BrunerResTask>();
-        claims = new TreeSet<int[]>(Multidegrees.multidegComparator);
+        tasks = new PriorityBlockingQueue<>();
+        claims = new TreeSet<>(Multidegrees.multidegComparator);
         putTask(new BrunerResTask(BrunerResTask.COMPUTE, 0, 0));
 
         for(int i = 0; i < Config.THREADS; i++)
@@ -211,9 +212,9 @@ public class BrunerBackend<T extends GradedElement<T>>
         else
             okbasis = olddat.kbasis;
 
-        Map<Dot<T>,DModSet<T>> list_x = new TreeMap<Dot<T>,DModSet<T>>();
-        Map<Dot<T>,DModSet<T>> list_dx = new TreeMap<Dot<T>,DModSet<T>>();
-        ArrayList<DModSet<T>> ker = new ArrayList<DModSet<T>>();
+        Map<Dot<T>,DModSet<T>> list_x = new TreeMap<>();
+        Map<Dot<T>,DModSet<T>> list_dx = new TreeMap<>();
+        ArrayList<DModSet<T>> ker = new ArrayList<>();
         /* loop over existing dots in this bidegree */
         for(int gt = s; gt < t; gt++) {
             if(Config.DEBUG && gens(s,gt) == null)
@@ -222,7 +223,7 @@ public class BrunerBackend<T extends GradedElement<T>>
 
             for(Generator<T> g : gens(s,gt)) {
                 for(T q : alg.basis(t-gt)) {
-                    DModSet<T> x = new DModSet<T>(new Dot<T>(g,q));
+                    DModSet<T> x = new DModSet<>(new Dot<>(g,q));
                     /* compute the image */
                     DModSet<T> dx;
                     if(s > 0) dx = g.img.times(q, alg);
@@ -271,7 +272,7 @@ public class BrunerBackend<T extends GradedElement<T>>
         list_x = null;
 
         /* save the kernel data */
-        BrunerCellData<T> dat = new BrunerCellData<T>(null, ker);
+        BrunerCellData<T> dat = new BrunerCellData<>(null, ker);
         putOutput(s, t, dat);
         
         /* kick off the first child task -- only depends ker, not gens */
@@ -281,7 +282,7 @@ public class BrunerBackend<T extends GradedElement<T>>
         
 
         /* now see how we're doing with respect to the old kernel. modifies okbasis elements */
-        ArrayList<Generator<T>> gens = new ArrayList<Generator<T>>();
+        ArrayList<Generator<T>> gens = new ArrayList<>();
         for(DModSet<T> k : okbasis) {
             if(Config.DEBUG) System.out.printf("kernel element %s ", k);
             /* reduce against the image */
@@ -319,7 +320,7 @@ public class BrunerBackend<T extends GradedElement<T>>
                 deg[g] = nov;
             }
 
-            Generator<T> gen = new Generator<T>(deg, gens.size());
+            Generator<T> gen = new Generator<>(deg, gens.size());
             gen.img = k;
 
             /* add this into the existing image */
@@ -368,9 +369,10 @@ public class BrunerBackend<T extends GradedElement<T>>
         module = m;
     }
 
+    @Override
     public Decorated<Generator<T>, MultigradedAlgebra<Generator<T>>> getDecorated()
     {
-        CompoundDecorated<Generator<T>,MultigradedAlgebra<Generator<T>>> dec = new CompoundDecorated<Generator<T>,MultigradedAlgebra<Generator<T>>>(this);
+        CompoundDecorated<Generator<T>,MultigradedAlgebra<Generator<T>>> dec = new CompoundDecorated<>(this);
 
 //        Collection<DifferentialRule> diffrules = new ArrayList<DifferentialRule>();
 //        diffrules.add(new DifferentialRule(new int[] {2,1,1}, new int[] {1,1,0}, Color.green));
@@ -397,10 +399,10 @@ public class BrunerBackend<T extends GradedElement<T>>
             new Color(0,0,0),
         };
         List<T> distinguished = alg.distinguished();
-        Collection<ProductRule> prodrules = new ArrayList<ProductRule>();
+        Collection<ProductRule> prodrules = new ArrayList<>();
         for(int i = 0; i < colors.length && i < distinguished.size(); i++)
             prodrules.add(new ProductRule("h_"+i, distinguished.get(i), true, false, false, colors[i]));
-        dec.add(new ProductDecorated<T,MultigradedAlgebra<Generator<T>>>(this, prodrules));
+        dec.add(new ProductDecorated<>(this, prodrules));
 
         return dec;
     }

@@ -30,15 +30,17 @@ public class ModSet<T> extends TreeMap<T,Integer>
     public void add(ModSet<T> d, int mult)
     {
         if(ResMath.dmod(mult) == 0) return;
-        for(Map.Entry<T,Integer> e : d.entrySet())
+        d.entrySet().forEach((e) -> {
             add(e.getKey(), e.getValue() * mult);
+        });
     }
 
     public ModSet<T> scaled(int scale)
     {
-        ModSet<T> ret = new ModSet<T>();
-        for(Map.Entry<T,Integer> e : entrySet())
+        ModSet<T> ret = new ModSet<>();
+        entrySet().forEach((e) -> {
             ret.add(e.getKey(), e.getValue() * scale);
+        });
         return ret;
     }
 
@@ -57,10 +59,9 @@ public class ModSet<T> extends TreeMap<T,Integer>
 
     public void union(ModSet<T> s)
     {
-        for(T d : s.keySet()) {
-            if(!containsKey(d))
-                put(d,1);
-        }
+        s.keySet().stream().filter((d) -> (!containsKey(d))).forEachOrdered((d) -> {
+            put(d,1);
+        });
     }
 
     @Override public String toString()
