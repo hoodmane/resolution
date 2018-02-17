@@ -179,7 +179,9 @@ public class Main {
         /* backend */
         BrunerBackend<T> back = new BrunerBackend<>(alg,mod);
         Decorated<Generator<T>, ? extends MultigradedVectorSpace<Generator<T>>> dec = back.getDecorated();
-        back.registerDoneCallback(() -> {new ExportToTex(dec).writeToFile("tex/"+texOutputFilename);});
+        if(texOutputFilename!=null){
+            back.registerDoneCallback(() -> {new ExportToTex(dec).writeToFile("tex/"+texOutputFilename);});
+        }
        /* frontend *//*
         String s = sd.front.getSelection().getActionCommand();
         if(s == SettingsDialog.FRONT3D)

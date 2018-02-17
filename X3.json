@@ -2,7 +2,7 @@
     "prime" : 3,
     "algebra" : "A(2)",
     "generators" : { "x0" : 0, "x1" : 4, "x2" : 8 },
-    "max_stem" : 50,
+    "max_stem" : 200,
     "relations" : [
         "P1(x0) = x1",
         "P2(x0) = x2",
