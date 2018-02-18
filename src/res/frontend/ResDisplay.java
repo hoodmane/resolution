@@ -335,9 +335,12 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
     
     void updateOffsets(){
         block_width = 1 + (29.0 * Math.pow(ZOOM_BASE,zoom));
+        double oldscale = scale;
         scale = block_width/30.0;
-        xoffset = (scale * (viewx - MARGIN_WIDTH) ) + MARGIN_WIDTH;
-        yoffset = (scale * (viewy + MARGIN_WIDTH) ) - MARGIN_WIDTH;
+        viewx += mousex*(1/scale - 1/oldscale);
+        viewy -= (getHeight()-mousey)*(1/scale - 1/oldscale);
+        xoffset = scale * viewx;
+        yoffset = scale * viewy;
         block_height = (block_width*yscale);
     }
 
@@ -401,8 +404,8 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
 
     @Override public void mouseDragged(MouseEvent evt)
     {
-        int dx = evt.getX() - mousex;
-        int dy = evt.getY() - mousey;
+        double dx = evt.getX() - mousex;
+        double dy = evt.getY() - mousey;
 
         mousex = evt.getX();
         mousey = evt.getY();
@@ -410,7 +413,7 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         viewx += dx/scale;
         viewy += dy/scale;
         updateOffsets();
-
+        
         repaint();
     }
 
