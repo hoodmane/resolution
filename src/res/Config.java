@@ -8,6 +8,8 @@ public class Config
     public static int T_CAP = 50;
     public static boolean MICHAEL_MODE = false;
     public static boolean MOTIVIC_GRADING = false;
+    public static double xscale = 1;
+    public static double yscale = 1;
 
     /* not configurable from settings dialog */
     public static final boolean DEBUG = false;

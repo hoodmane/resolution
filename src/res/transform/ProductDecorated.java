@@ -14,7 +14,7 @@ public class ProductDecorated<U extends GradedElement<U>, T extends MultigradedA
         this.rules = rules;
     }
 
-    @Override public Collection<BasedLineDecoration<Generator<U>>> getBasedLineDecorations(Generator<U> g)
+    @Override public Collection<BasedLineDecoration<Generator<U>>> getStructlineDecorations(Generator<U> g)
     {
         ArrayList<BasedLineDecoration<Generator<U>>> ret = new ArrayList<>();
 

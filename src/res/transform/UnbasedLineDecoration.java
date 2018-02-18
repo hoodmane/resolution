@@ -4,10 +4,10 @@ import java.awt.Color;
 
 public class UnbasedLineDecoration<T> {
     public T src;
-    public int[] dest;
+    public double[] dest;
     public Color color;
 
-    public UnbasedLineDecoration(T src, int[] dest, Color color) {
+    public UnbasedLineDecoration(T src, double[] dest, Color color) {
         this.src = src;
         this.dest = dest;
         this.color = color;

@@ -16,6 +16,9 @@ public class JSONSpecification {
     public List<String> relations;
     public int max_stem;
     public String tex_output;
+    public double xscale;
+    public double yscale;
+    public double scale;
     
     public static JSONSpecification loadFile(String filename) throws IOException, ParseException {
         try(Reader reader = new FileReader(filename)){

@@ -17,10 +17,10 @@ public abstract class Decorated<U extends MultigradedElement<U>, T extends Multi
 
     /* good to override: */
     public boolean isVisible(U u) { return true; }
-    public Collection<BasedLineDecoration<U>> getBasedLineDecorations(U u) {
+    public Collection<BasedLineDecoration<U>> getStructlineDecorations(U u) {
         return Collections.emptyList();
     }
-    public Collection<UnbasedLineDecoration<U>> getUnbasedLineDecorations(U u) {
+    public Collection<UnbasedLineDecoration<U>> getUnbasedStructlineDecorations(U u) {
         return Collections.emptyList();
     }
 }

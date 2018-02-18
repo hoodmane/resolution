@@ -27,20 +27,20 @@ public class CompoundDecorated<U extends MultigradedElement<U>, T extends Multig
         return sub.stream().noneMatch((d) -> (! d.isVisible(u)));
     }
 
-    @Override public Collection<BasedLineDecoration<U>> getBasedLineDecorations(U u)
+    @Override public Collection<BasedLineDecoration<U>> getStructlineDecorations(U u)
     {
         Collection<BasedLineDecoration<U>> ret = new ArrayList<>();
         sub.forEach((d) -> {
-            ret.addAll(d.getBasedLineDecorations(u));
+            ret.addAll(d.getStructlineDecorations(u));
         });
         return ret;
     }
 
-    @Override public Collection<UnbasedLineDecoration<U>> getUnbasedLineDecorations(U u)
+    @Override public Collection<UnbasedLineDecoration<U>> getUnbasedStructlineDecorations(U u)
     {
         Collection<UnbasedLineDecoration<U>> ret = new ArrayList<>();
         sub.forEach((d) -> {
-            ret.addAll(d.getUnbasedLineDecorations(u));
+            ret.addAll(d.getUnbasedStructlineDecorations(u));
         });
         return ret;
     }

@@ -33,7 +33,7 @@ public class Main {
 	System.exit(1);
     }
 
-    private static final Pattern AnALGNAME_PAT = Pattern.compile("\\s*A\\(?\\s*(\\d*)\\s*\\)?\\s*$");
+    private static final Pattern A_N_ALGNAME_PAT = Pattern.compile("\\s*A\\(?\\s*(\\d*)\\s*\\)?\\s*$");
     static SettingsDialog sd;
     
     public static void main(String[] args)
@@ -45,6 +45,7 @@ public class Main {
                spec = JSONSpecification.loadFile(args[0]);
                Config.P = spec.prime;
                Config.Q = 2 * (Config.P - 1);
+               Config.yscale = Config.Q;
 	       sqmod = new JSONModule(spec.generators,spec.relations);
            } catch(ParseException | IOException e) {
               quit(e);
@@ -52,6 +53,18 @@ public class Main {
            }
            ResMath.calcInverses();
            texOutputFilename = spec.tex_output;
+           if(spec.xscale>0){
+               Config.xscale = spec.xscale;
+           }
+           if(spec.yscale>0){
+               Config.yscale = spec.yscale;
+           }
+           if(spec.scale>0){
+               Config.xscale *= spec.scale;
+               Config.yscale *= spec.scale;
+           }
+           
+           
            if(spec.max_stem > 0){
                Config.T_CAP = spec.max_stem;
            }
@@ -60,7 +73,7 @@ public class Main {
                	startBruner(new SteenrodAlgebra(), sqmod);
            } else if("P".equals(spec.algebra)) {
                 startBruner(new EvenSteenrodAlgebra(), sqmod);
-           } else if((match = AnALGNAME_PAT.matcher(spec.algebra)).find()) {
+           } else if((match = A_N_ALGNAME_PAT.matcher(spec.algebra)).find()) {
                 int n;
                 try {
                     n = Integer.parseInt(match.group(1));
@@ -87,6 +100,7 @@ public class Main {
             /* prime */
             Config.P = (Integer) sd.prime.getSelectedItem();
             Config.Q = 2 * (Config.P - 1);
+            Config.yscale = Config.Q;
             ResMath.calcInverses();
             Config.T_CAP = (Integer) sd.maxt.getValue();
             Config.THREADS = (Integer) sd.threads.getValue();
@@ -182,12 +196,8 @@ public class Main {
         if(texOutputFilename!=null){
             back.registerDoneCallback(() -> {new ExportToTex(dec).writeToFile("tex/"+texOutputFilename);});
         }
-       /* frontend *//*
-        String s = sd.front.getSelection().getActionCommand();
-        if(s == SettingsDialog.FRONT3D)
-            ResDisplay3D.constructFrontend(dec);
-        else */
-            ResDisplay.constructFrontend(dec);//.setScale(1,Config.Q);
+        
+        ResDisplay.constructFrontend(dec).setScale(Config.xscale,Config.yscale).start();
 
         /* off we go */
         back.start();

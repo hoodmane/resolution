@@ -17,7 +17,7 @@ public class DifferentialDecorated<U extends MultigradedElement<U>, T extends Mu
         this(t, DifferentialRule.parse(rules));
     }
 
-    @Override public Collection<BasedLineDecoration<U>> getBasedLineDecorations(U u)
+    @Override public Collection<BasedLineDecoration<U>> getStructlineDecorations(U u)
     {
         Collection<BasedLineDecoration<U>> ret = new ArrayList<>();
 

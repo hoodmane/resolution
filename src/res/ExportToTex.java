@@ -40,7 +40,7 @@ public class ExportToTex <U extends MultigradedElement<U>> {
 //                    }).forEachOrdered((p2) -> {
 //                        g.drawLine(p1[0], p1[1], p2[0], p2[1]);
 //                    });                    
-                    dec.getBasedLineDecorations(g).stream().map((d) -> {
+                    dec.getStructlineDecorations(g).stream().map((d) -> {
                         return d.dest;
                     }).forEachOrdered((dest) -> {
                         addStructline(g,dest);

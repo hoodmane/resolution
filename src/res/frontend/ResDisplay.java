@@ -5,14 +5,13 @@ import res.transform.*;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.AffineTransform;
+import java.awt.geom.*;
 import java.util.*;
 import javax.swing.*;
 import javax.swing.event.*;
-import res.Config;
 
 public class ResDisplay<U extends MultigradedElement<U>> extends JPanel 
-        implements PingListener, MouseMotionListener, MouseListener, MouseWheelListener, ComponentListener
+        implements PingListener, MouseMotionListener, MouseListener, MouseWheelListener
 {
     final static int DEFAULT_MINFILT = 0;
     final static int DEFAULT_MAXFILT = 100;
@@ -22,13 +21,18 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
     final static int DEFAULT_WINDOW_WIDTH = 1600;
     final static int DEFAULT_WINDOW_HEIGHT = 800;
     final static int MARGIN_WIDTH = 30;
-    
 
+    final static Color transparent = new Color(0,0,0,0);
     
+    private final static Map<Integer,Color> STATE_COLORS = new HashMap();
+    static {
+        STATE_COLORS.put(MultigradedVectorSpace.STATE_NOT_COMPUTED,Color.black);
+        STATE_COLORS.put(MultigradedVectorSpace.STATE_STARTED,Color.darkGray);
+        STATE_COLORS.put(MultigradedVectorSpace.STATE_PARTIAL,Color.yellow);
+        STATE_COLORS.put(MultigradedVectorSpace.STATE_VANISHES,Color.lightGray);
+        STATE_COLORS.put(MultigradedVectorSpace.STATE_DONE,transparent);
+    }
     
-
-    
-
     Decorated<U, ? extends MultigradedVectorSpace<U>> dec;
     MultigradedVectorSpace<U> under;
 
@@ -37,48 +41,53 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
     
     private double yscale = 1; 
     private final double yscale_log = Math.log(yscale)/Math.log(ZOOM_BASE);
-    double viewx = MARGIN_WIDTH;
-    double viewy = - MARGIN_WIDTH;
+    double viewx = 0;
+    double viewy = 0;
     double zoom = 0;
-    double block_width = 30;
     // Derived in updateOffsets():
-    double scale;
-    double xoffset;
+    double scale;   
+    double xoffset;  
     double yoffset;
+    double block_width;
     double block_height;
-    int block_width_int;
-    int half_block_width_int;
-    int block_height_int;
-    int half_block_height_int;    
     
     int selx = -1;
     int sely = -1;
     int mousex = -1;
-    int mousey = -1;
-    int width = 0;
-    int height = 0;
+    int mousey = -1;    
     
-    public int getOldWidth(){
-        return width;
-    }    
-    
-    public int getOldHeight(){
-        return height;
-    }
-
-    
+    final JFrame frame;
     JTextArea textarea = null;
 
-    private ResDisplay(Decorated<U, ? extends MultigradedVectorSpace<U>> dec)
+    /*
+     * Setup methods: each of these get called in order to initialize the display:
+     *    constructFrontEnd()
+     *       ResDisplay()
+     *       setBackened()
+     *    setScale() (optional)
+     *    start()
+     *     
+     */
+    
+    public static <U extends MultigradedElement<U>> ResDisplay<U> constructFrontend(Decorated<U, ? extends MultigradedVectorSpace<U>> back) 
     {
-        setBackend(dec);
-        addMouseListener(this);
-        addMouseMotionListener(this);
-        addMouseWheelListener(this);
-        addComponentListener(this);
-        updateOffsets();
+        ResDisplay<U> d = new ResDisplay<>();
+        d.setBackend(back);
+        JFrame fr = d.frame;
+        fr.getContentPane().add(d, BorderLayout.CENTER);
+        fr.getContentPane().add(new ControlPanel2D(d), BorderLayout.EAST);
+        d.addMouseListener(d);
+        d.addMouseMotionListener(d);
+        d.addMouseWheelListener(d);
+        return d;
     }
-
+    
+    private ResDisplay(){
+        frame = new JFrame("Resolution");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(DEFAULT_WINDOW_WIDTH,DEFAULT_WINDOW_HEIGHT);        
+    }
+    
     private void setBackend(Decorated<U, ? extends MultigradedVectorSpace<U>> dec)
     {
         if(under != null)
@@ -103,37 +112,64 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
             maxfilt[i] = DEFAULT_MAXFILT;
         } 
     }
+    
+    public ResDisplay<U> setScale(double xscale,double yscale){
+        this.yscale = yscale/xscale;
+        this.zoom = Math.log(xscale)/Math.log(ZOOM_BASE);
+        return this;
+    }
 
+    public ResDisplay<U> start(){
+        initializePosition();
+        this.frame.setVisible(true);
+        return this;
+    }
+    
+    private void initializePosition(){
+        updateOffsets(); // We have to call this to initialize block_width and block_height.
+        viewx = MARGIN_WIDTH + block_width/2; // Which are needed to initialize viewx and viewy
+        viewy = - MARGIN_WIDTH + 1.5*block_height;
+        updateOffsets();
+    }
     /**
-     * getcx converts the x chart coordinate into a screen coordinate.
+     * getScreenX converts the x chart coordinate into an x screen coordinate. 
+     * Make sure this is the inverse of getChartX(x) if you make any changes! 
      * @param x chart coordinate
      * @return screen coordinate
      */
-    private int getcx(int x) {
-        return (int) (block_width * (x-0.5) +  xoffset);
+    private double getScreenX(double sx) {
+        return (block_width * (sx-0.5) +  xoffset);
     }
-    private int getcy(int y) {
-        return getHeight() - (int) (block_height * (y-0.5) - yoffset);
+    private double getScreenY(double sy) {
+        return getHeight() - (block_height * (sy+1.5) - yoffset);
+    }
+    
+    private double[] getScreenP(double[] sp){
+        return new double[] {getScreenX(sp[0]),getScreenY(sp[1])};
     }
     
     /**
-     * getx converts the screen coordinate into a chart coordinate.
-     * Make sure this is the inverse of getcx!!
+     * getChartX converts the x screen coordinate into an x chart coordinate.
+     * Make sure this is the inverse of getSX(cx) if you make any changes!
      * @param cx screen coordinate
      * @return chart coordinate
      */
-    private int getx(int cx) {
+    private double getChartX(double cx) {
         double x = cx - xoffset;
         x /= block_width;
         x += 0.5;
-        return (int) x;
+        return x;
     }
-    private int gety(int cy) {
+    private double getChartY(double cy) {
         double y = cy - getHeight() - yoffset;
         y = -y;
         y /= block_height;
-        y += 0.5;
-        return (int) y;
+        y -= 0.5;
+        return y;
+    }
+    
+    private double[] getChartP(double[] cp){
+        return new double[] {getChartX(cp[0]),getChartY(cp[1])};
     }
 
     private boolean isVisible(U d)
@@ -150,104 +186,107 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         return new int[] {y,x+y};
     }
 
-    private void drawLine(Graphics g,int x,int y,int z,int w){
-        g.drawLine(x, y, z, w);
-    }
-
-    private void fillRect(Graphics g,int x,int y){
-        g.fillRect(getcx(x), getcy(y), block_width_int, block_height_int);
-    }
-
-    private void drawString(Graphics g,String s,int x,int y){
-        g.drawString(s, x - half_block_width_int, y + half_block_height_int);
+    private void drawLine(Graphics2D g,double x1,double y1,double x2,double y2){
+        g.draw(new Line2D.Double(x1, y1, x2, y2));
     }
     
-    private TreeMap<U,int[]> pos;
+    private void drawStructline(Graphics2D g, U u,BasedLineDecoration<U> d){
+        g.setColor(d.color);
+        if(pos.get(u)!=null && pos.get(d.dest)!=null){//if(isVisible(u) && isVisible(d.dest)){
+            drawStructlineHelper(g,pos.get(u),pos.get(d.dest));
+        }
+    }
     
-    private void drawDot(Graphics g, U u){
+    private void drawUnbasedStructline(Graphics2D g, U u,UnbasedLineDecoration<U> d){
+        g.setColor(d.color);
+        drawStructlineHelper(g,pos.get(u),getScreenP(d.dest));
+    }    
+    
+    private void drawStructlineHelper(Graphics2D g, double[] p1,double[] p2){
+        g.draw(new Line2D.Double(p1[0] + block_width/2, p1[1] - block_height/2, p2[0] + block_width/2, p2[1] - block_height/2));
+    }
+
+    private void shadeChartCell(Graphics2D g,Color color,double x,double y){
+        g.setColor(color);
+        g.fill(new  Rectangle2D.Double(getScreenX(x), getScreenY(y), block_width, block_height));
+    }
+    
+    private TreeMap<U,double[]> pos;
+    
+    private void drawDot(Graphics2D g, U u){
         g.setColor(Color.black);
-        int p[] = pos.get(u);
-        g.fillOval(p[0]-3+ half_block_width_int, p[1]-3-half_block_height_int, 6, 6);
+        double p[] = pos.get(u);
+        g.fill(new Ellipse2D.Double( p[0] - 3 + block_width/2, p[1] - 3 - block_height/2, 6, 6));
     }
     
-    @Override public void paintComponent(Graphics g)
+    @Override public void paintComponent(Graphics graphics)
     {
-        super.paintComponent(g);
+        super.paintComponent(graphics);
+        Graphics2D g = (Graphics2D) graphics;
         
-        
-        int min_x_visible = getx(-3*block_width_int);
-        int min_y_visible = gety((getHeight() + 3*block_height_int));
+        /* calculate visible region */
+        int min_x_visible = (int) getChartX(-3*block_width);
+        int min_y_visible = (int) getChartY((getHeight() + 3*block_height));
         if(min_x_visible < 0) min_x_visible = 0;
         if(min_y_visible < 0) min_y_visible = 0;
-        int max_x_visible = getx(getWidth() + 3*block_width_int);
-        int max_y_visible = gety(-3*block_height_int);
+        int max_x_visible = (int) getChartX(getWidth() + 3*block_width);
+        int max_y_visible = (int) getChartY(-3*block_height);
         int max_visible = (max_x_visible < max_y_visible) ? max_y_visible : max_x_visible;
-        
-
-        /* draw grid */
+      
+       
+        /* draw grid  -- this needs to go first so that the uncomputed region is correctly blacked out 
+         * (it looks ugly to have a light gray grid on a black background).
+         */
         int xtickstep = 5;
         int ytickstep = 5;
         for(double i = -zoom; i > 0; i -= ZOOMINTERVAL) xtickstep *= 2;
         for(double i = (-zoom - yscale_log); i > 0; i -= ZOOMINTERVAL*yscale) ytickstep *= 2;
         for(int x = 0; x <= max_visible; x++) {
             g.setColor(Color.lightGray);
-            drawLine(g,getcx(x), getcy(0), getcx(x), 0);
-            drawLine(g,getcx(0), getcy(x), getWidth(), getcy(x));
+            drawLine(g,getScreenX(x), getScreenY(0), getScreenX(x), 0);
+            drawLine(g,getScreenX(0), getScreenY(x), getWidth(), getScreenY(x));
 
             g.setColor(Color.black);
             // Draw axes ticks. Not such a fan of these magic numbers...
             if(x % xtickstep == 0) {
-                g.drawString(String.valueOf(x), getcx(x)-8, (int)(getcy(0)+(18.*block_height/30.))+17);
+                g.drawString(String.valueOf(x), (float)(getScreenX(x)-8), (float)(getScreenY(0)+(18.*block_height/30.))+17);
             }
             if(x % ytickstep == 0){
-                g.drawString(String.valueOf(x), getcx(0)-(int)(19.*block_width/30.)-19, (getcy(x)+5));
+                g.drawString(String.valueOf(x), (float)(getScreenX(0)-(19.*block_width/30.)-19), (float)(getScreenY(x)+5));
             }
-        }
+        }                
         
         /* assign dots a location; at this point we definitively decide what's visible */
         Set<U> frameVisibles = new TreeSet<>();
         pos = new TreeMap<>();
         for(int x = min_x_visible; x <= max_x_visible; x++) {
             for(int y = min_y_visible; y <= max_y_visible; y++) {
-                int cx = getcx(x);
-                int cy = getcy(y);
-                switch(under.getState(multideg(x,y))) {
-                    case MultigradedVectorSpace.STATE_NOT_COMPUTED:
-                        g.setColor(Color.black);
-                        fillRect(g,x,y);
-                        continue;
-                    case MultigradedVectorSpace.STATE_STARTED:
-                        g.setColor(Color.darkGray);
-                        fillRect(g,x,y);
-                        continue;
-                    case MultigradedVectorSpace.STATE_PARTIAL:
-                        g.setColor(Color.yellow);
-                        fillRect(g,x,y);
-                        break;
-                    case MultigradedVectorSpace.STATE_VANISHES:
-                        g.setColor(Color.lightGray);
-                        fillRect(g,x,y);
-                        continue;
-                    default:
-                        break;
-                }
+                int cellState = under.getState(multideg(x,y));
+                Color cellColor;
                 if(x == selx && y == sely) {
-                    g.setColor(Color.orange);
-                    fillRect(g,x,y);
+                    cellColor = Color.orange;
+                } else {
+                    cellColor = STATE_COLORS.get(cellState);
                 }
-        
+                
+                shadeChartCell(g,cellColor,x,y);                
+
+                if(!(cellState == MultigradedVectorSpace.STATE_PARTIAL || cellState == MultigradedVectorSpace.STATE_DONE)){
+                    continue;
+                }
+                
                 Collection<U> gens = under.gens(multideg(x,y));
 
-                int visible = 0;
+                int visible;
                 synchronized(gens) {
-                    visible = gens.stream().filter((d) -> (isVisible(d))).map((d) -> {
+                    visible = (int) gens.stream().filter((d) -> (isVisible(d))).map((d) -> {
                         frameVisibles.add(d);
                         return d;
-                    }).map((_item) -> 1).reduce(visible, Integer::sum);
+                    }).count();
                     int offset = -5 * (visible-1) / 2;
                     for(U d : gens) { 
                         if(frameVisibles.contains(d)) {
-                            int[] newpos = new int[] { cx + offset, cy - offset/2 };
+                            double[] newpos = new double[] { getScreenX(x) + offset, getScreenY(y) - offset/2 };
                             pos.put(d, newpos);
                             offset += 5;
                         }
@@ -255,28 +294,19 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
                 }
             }
         }
+ 
 
         /* draw decorations */
-        frameVisibles.forEach((u) -> {
-            int[] p1 = pos.get(u);
-
+        frameVisibles.forEach((U u) -> {
             /* based */
-            dec.getBasedLineDecorations(u).stream().filter((d) -> !(! frameVisibles.contains(d.dest))).map((d) -> {
-                g.setColor(d.color);
-                return pos.get(d.dest);
-            }).forEachOrdered((p2) -> {
-                drawLine(g,p1[0] + half_block_width_int, p1[1] - half_block_height_int, p2[0] + half_block_width_int, p2[1] - half_block_height_int);
-            });
+            dec.getStructlineDecorations(u).forEach((d) ->
+                drawStructline(g,u,d)
+            );
             
             /* unbased */
-            dec.getUnbasedLineDecorations(u).stream().map((d) -> {
-                g.setColor(d.color);
-                return d;
-            }).forEachOrdered((d) -> {
-                int destx = getcx(d.dest[0]);
-                int desty = getcy(d.dest[1]);
-                drawLine(g,p1[0] + half_block_width_int, p1[1] - half_block_height_int, destx, desty);
-            });
+            dec.getUnbasedStructlineDecorations(u).forEach((d) -> 
+                drawUnbasedStructline(g,u,d)
+            );
         });
 
         /* draw dots */
@@ -295,10 +325,10 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         g.drawLine(MARGIN_WIDTH, bmy, getWidth(), bmy);
         g.setColor(Color.black);
         for(int x = 0; x <= max_visible; x += xtickstep) {
-            g.drawString(String.valueOf(x), getcx(x)-8, getHeight()-10);
+            g.drawString(String.valueOf(x),(float) getScreenX(x)-8, getHeight()-10);
         }
         for(int y = 0; y <= max_visible; y += ytickstep) {
-            g.drawString(String.valueOf(y), 10, (getcy(y)+5));
+            g.drawString(String.valueOf(y), 10, (float)(getScreenY(y)+5));
         }
 
     }
@@ -308,11 +338,7 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         scale = block_width/30.0;
         xoffset = (scale * (viewx - MARGIN_WIDTH) ) + MARGIN_WIDTH;
         yoffset = (scale * (viewy + MARGIN_WIDTH) ) - MARGIN_WIDTH;
-        block_width_int = (int)block_width;
-        half_block_width_int = (int)(block_width/2);
         block_height = (block_width*yscale);
-        block_height_int = (int)(block_height);
-        half_block_height_int = (int)(block_height/2);
     }
 
     @SuppressWarnings("fallthrough")
@@ -352,17 +378,10 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         textarea.setText(ret);
     }
 
-    
-    @Override public void componentResized(ComponentEvent e){
-    }
-     @Override public void componentMoved(ComponentEvent e) {}
-     @Override public void componentShown(ComponentEvent e) {}
-     @Override public void componentHidden(ComponentEvent e) {}
-
     @Override public void mouseClicked(MouseEvent evt)
     {
-        int x = getx(evt.getX());
-        int y = gety(evt.getY());
+        int x = (int) getChartX(evt.getX());
+        int y = (int) getChartY(evt.getY());
         if(x >= 0 && y >= 0) {
             setSelected(x,y);
         } else {
@@ -409,26 +428,6 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         if(deg[0] == s[0] && deg[1] == s[1])
             setSelected(selx,sely); // updates text
     }
-
-    public static <U extends MultigradedElement<U>> ResDisplay<U> constructFrontend(Decorated<U, ? extends MultigradedVectorSpace<U>> back) 
-    {
-        JFrame fr = new JFrame("Resolution");
-        fr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        fr.setSize(DEFAULT_WINDOW_WIDTH,DEFAULT_WINDOW_HEIGHT);
-        ResDisplay<U> d = new ResDisplay<>(back);
-        fr.getContentPane().add(d, BorderLayout.CENTER);
-        
-        fr.getContentPane().add(new ControlPanel2D(d), BorderLayout.EAST);
-        fr.setVisible(true);
-        return d;
-    }
-    
-    public void setScale(double xscale,double yscale){
-        this.yscale = yscale/xscale;
-        this.zoom = Math.log(xscale)/Math.log(ZOOM_BASE);
-        updateOffsets();
-    }
-
 }
 
 class ControlPanel2D extends Box {
