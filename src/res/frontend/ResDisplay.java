@@ -23,7 +23,8 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
     final static int DEFAULT_WINDOW_HEIGHT = 800;
     final static int MARGIN_WIDTH = 30;
     
-    int BLOCK_WIDTH = 30;
+
+    
     
 
     
@@ -34,15 +35,22 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
     int[] minfilt;
     int[] maxfilt;
     
-    private int yscale = Config.Q; 
+    private double yscale = 1; 
     private final double yscale_log = Math.log(yscale)/Math.log(ZOOM_BASE);
     double viewx = MARGIN_WIDTH;
     double viewy = - MARGIN_WIDTH;
-    double xoffset = viewx;
-    double yoffset = viewx;
-    AffineTransform translation = new AffineTransform();
     double zoom = 0;
-    double scale = 1;
+    double block_width = 30;
+    // Derived in updateOffsets():
+    double scale;
+    double xoffset;
+    double yoffset;
+    double block_height;
+    int block_width_int;
+    int half_block_width_int;
+    int block_height_int;
+    int half_block_height_int;    
+    
     int selx = -1;
     int sely = -1;
     int mousex = -1;
@@ -64,11 +72,11 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
     private ResDisplay(Decorated<U, ? extends MultigradedVectorSpace<U>> dec)
     {
         setBackend(dec);
-        translation.setToTranslation(viewx,viewy);
         addMouseListener(this);
         addMouseMotionListener(this);
         addMouseWheelListener(this);
         addComponentListener(this);
+        updateOffsets();
     }
 
     private void setBackend(Decorated<U, ? extends MultigradedVectorSpace<U>> dec)
@@ -102,10 +110,10 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
      * @return screen coordinate
      */
     private int getcx(int x) {
-        return BLOCK_WIDTH * (x) + (int) xoffset;
+        return (int) (block_width * (x-0.5) +  xoffset);
     }
     private int getcy(int y) {
-        return getHeight() - BLOCK_WIDTH * y *yscale + (int) yoffset;
+        return getHeight() - (int) (block_height * (y-0.5) - yoffset);
     }
     
     /**
@@ -115,15 +123,17 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
      * @return chart coordinate
      */
     private int getx(int cx) {
-        cx -= (int) xoffset;
-        cx += BLOCK_WIDTH/2;
-        return cx / BLOCK_WIDTH;
+        double x = cx - xoffset;
+        x /= block_width;
+        x += 0.5;
+        return (int) x;
     }
     private int gety(int cy) {
-        cy = cy - getHeight() - (int) yoffset;
-        cy = -cy;
-        cy += yscale*BLOCK_WIDTH/2;
-        return cy / BLOCK_WIDTH/yscale;
+        double y = cy - getHeight() - yoffset;
+        y = -y;
+        y /= block_height;
+        y += 0.5;
+        return (int) y;
     }
 
     private boolean isVisible(U d)
@@ -145,11 +155,11 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
     }
 
     private void fillRect(Graphics g,int x,int y){
-        g.fillRect(getcx(x), getcy(y), BLOCK_WIDTH, BLOCK_WIDTH*yscale);
+        g.fillRect(getcx(x), getcy(y), block_width_int, block_height_int);
     }
 
     private void drawString(Graphics g,String s,int x,int y){
-        g.drawString(s, x-BLOCK_WIDTH/2, y + BLOCK_WIDTH/2 * yscale);
+        g.drawString(s, x - half_block_width_int, y + half_block_height_int);
     }
     
     private TreeMap<U,int[]> pos;
@@ -157,7 +167,7 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
     private void drawDot(Graphics g, U u){
         g.setColor(Color.black);
         int p[] = pos.get(u);
-        g.fillOval(p[0]-3+BLOCK_WIDTH/2, p[1]-3-yscale*BLOCK_WIDTH/2, 6, 6);
+        g.fillOval(p[0]-3+ half_block_width_int, p[1]-3-half_block_height_int, 6, 6);
     }
     
     @Override public void paintComponent(Graphics g)
@@ -165,20 +175,20 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         super.paintComponent(g);
         
         
-        int min_x_visible = getx(-3*BLOCK_WIDTH);
-        int min_y_visible = gety((getHeight() + 3*BLOCK_WIDTH*yscale));
+        int min_x_visible = getx(-3*block_width_int);
+        int min_y_visible = gety((getHeight() + 3*block_height_int));
         if(min_x_visible < 0) min_x_visible = 0;
         if(min_y_visible < 0) min_y_visible = 0;
-        int max_x_visible = getx(getWidth() + 3*BLOCK_WIDTH);
-        int max_y_visible = gety(-3*BLOCK_WIDTH*yscale);
+        int max_x_visible = getx(getWidth() + 3*block_width_int);
+        int max_y_visible = gety(-3*block_height_int);
         int max_visible = (max_x_visible < max_y_visible) ? max_y_visible : max_x_visible;
         
 
         /* draw grid */
         int xtickstep = 5;
         int ytickstep = 5;
-        for(int i = (int) -zoom; i > 0; i -= ZOOMINTERVAL) xtickstep *= 2;
-        for(int i =(int) (-zoom - yscale_log); i > 0; i -= ZOOMINTERVAL*yscale) ytickstep *= 2;
+        for(double i = -zoom; i > 0; i -= ZOOMINTERVAL) xtickstep *= 2;
+        for(double i = (-zoom - yscale_log); i > 0; i -= ZOOMINTERVAL*yscale) ytickstep *= 2;
         for(int x = 0; x <= max_visible; x++) {
             g.setColor(Color.lightGray);
             drawLine(g,getcx(x), getcy(0), getcx(x), 0);
@@ -187,17 +197,12 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
             g.setColor(Color.black);
             // Draw axes ticks. Not such a fan of these magic numbers...
             if(x % xtickstep == 0) {
-                g.drawString(String.valueOf(x), getcx(x)-8, (getcy(0)+(18*yscale*BLOCK_WIDTH/30))+17);
+                g.drawString(String.valueOf(x), getcx(x)-8, (int)(getcy(0)+(18.*block_height/30.))+17);
             }
             if(x % ytickstep == 0){
-                g.drawString(String.valueOf(x), getcx(0)-(19*BLOCK_WIDTH/30)-19, (getcy(x)+5));
+                g.drawString(String.valueOf(x), getcx(0)-(int)(19.*block_width/30.)-19, (getcy(x)+5));
             }
         }
-        
-//        g.fillRect(0,700,BLOCK_WIDTH,BLOCK_WIDTH);
-//        fillRect(g,0,5*BLOCK_WIDTH,BLOCK_WIDTH,BLOCK_WIDTH);
-//        fillRect(g,0,getcy(0),BLOCK_WIDTH,BLOCK_WIDTH);
-//        fillRect(g,0,getcy(5),BLOCK_WIDTH,BLOCK_WIDTH);
         
         /* assign dots a location; at this point we definitively decide what's visible */
         Set<U> frameVisibles = new TreeSet<>();
@@ -260,7 +265,7 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
                 g.setColor(d.color);
                 return pos.get(d.dest);
             }).forEachOrdered((p2) -> {
-                drawLine(g,p1[0]+ BLOCK_WIDTH/2, p1[1]- yscale * BLOCK_WIDTH/2, p2[0]+BLOCK_WIDTH/2, p2[1]-yscale*BLOCK_WIDTH/2);
+                drawLine(g,p1[0] + half_block_width_int, p1[1] - half_block_height_int, p2[0] + half_block_width_int, p2[1] - half_block_height_int);
             });
             
             /* unbased */
@@ -270,7 +275,7 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
             }).forEachOrdered((d) -> {
                 int destx = getcx(d.dest[0]);
                 int desty = getcy(d.dest[1]);
-                drawLine(g,p1[0] + BLOCK_WIDTH/2, p1[1] - yscale * BLOCK_WIDTH/2, destx, desty);
+                drawLine(g,p1[0] + half_block_width_int, p1[1] - half_block_height_int, destx, desty);
             });
         });
 
@@ -299,8 +304,15 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
     }
     
     void updateOffsets(){
+        block_width = 1 + (29.0 * Math.pow(ZOOM_BASE,zoom));
+        scale = block_width/30.0;
         xoffset = (scale * (viewx - MARGIN_WIDTH) ) + MARGIN_WIDTH;
         yoffset = (scale * (viewy + MARGIN_WIDTH) ) - MARGIN_WIDTH;
+        block_width_int = (int)block_width;
+        half_block_width_int = (int)(block_width/2);
+        block_height = (block_width*yscale);
+        block_height_int = (int)(block_height);
+        half_block_height_int = (int)(block_height/2);
     }
 
     @SuppressWarnings("fallthrough")
@@ -386,8 +398,6 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
     @Override public void mouseWheelMoved(MouseWheelEvent evt)
     {
         zoom -= evt.getWheelRotation();
-        BLOCK_WIDTH = 1 + (int) (29.0 * Math.pow(ZOOM_BASE,zoom));
-        scale = ((double)BLOCK_WIDTH)/30.0;
         updateOffsets();
         repaint();
     }
@@ -400,17 +410,23 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
             setSelected(selx,sely); // updates text
     }
 
-    public static <U extends MultigradedElement<U>> void constructFrontend(Decorated<U, ? extends MultigradedVectorSpace<U>> back) 
+    public static <U extends MultigradedElement<U>> ResDisplay<U> constructFrontend(Decorated<U, ? extends MultigradedVectorSpace<U>> back) 
     {
         JFrame fr = new JFrame("Resolution");
         fr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         fr.setSize(DEFAULT_WINDOW_WIDTH,DEFAULT_WINDOW_HEIGHT);
-        
         ResDisplay<U> d = new ResDisplay<>(back);
         fr.getContentPane().add(d, BorderLayout.CENTER);
         
         fr.getContentPane().add(new ControlPanel2D(d), BorderLayout.EAST);
         fr.setVisible(true);
+        return d;
+    }
+    
+    public void setScale(double xscale,double yscale){
+        this.yscale = yscale/xscale;
+        this.zoom = Math.log(xscale)/Math.log(ZOOM_BASE);
+        updateOffsets();
     }
 
 }

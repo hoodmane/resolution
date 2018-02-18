@@ -187,7 +187,7 @@ public class Main {
         if(s == SettingsDialog.FRONT3D)
             ResDisplay3D.constructFrontend(dec);
         else */
-            ResDisplay.constructFrontend(dec);
+            ResDisplay.constructFrontend(dec);//.setScale(1,Config.Q);
 
         /* off we go */
         back.start();
