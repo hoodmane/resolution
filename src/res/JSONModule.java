@@ -23,8 +23,14 @@ public class JSONModule extends GradedModule<Sq> {
     private Map<Integer,ArrayList<Dot<Sq>>> gens = new TreeMap<>();
     private Map<Dot<Sq>,Map<Integer,DModSet<Sq>>> actions = new TreeMap<>();
     
-    /* Get the i-index of a map from Integers to Lists, but if the i-index does not exist, populate
-       it with a new empty list, set the ith index equal to it, and return it */
+    /**
+     * Get the i-index of a map from Integers to Lists, but if the i-index does not exist, populate
+     *  it with a new empty list, set the ith index equal to it, and return it 
+     * @param <T> 
+     * @param map A map Integer ==> List<T>
+     * @param i an index
+     * @return either ith index of the map or a new empty list
+     */
     static <T> ArrayList<T> getAndInitializeIfNeeded(Map<Integer,ArrayList<T>> map, int i) {
         ArrayList<T> alist = map.get(i);
         if(alist == null) {
@@ -39,7 +45,7 @@ public class JSONModule extends GradedModule<Sq> {
     /* Match: P10(x1) or b(y) or Sq2(x0). Group 1: "P" or "b" or "Sq", Group 2: "10" or "" or "2", Group 3: "x1" or "y" or "x0" */
     private static final Pattern LHSPAT = Pattern.compile("\\s*([A-Za-z]*)(\\d*)\\s*\\(\\s*([\\w\\^]*)\\s*\\)\\s*");
     /* Match: 2 x1 or 2*x1 or 2x1. Group 1: "2" Group 2: "x1" */
-    private static final Pattern TERMPAT = Pattern.compile("(\\d*)\\s*\\*?\\s*([\\w\\^]*)");
+    private static final Pattern TERMPAT = Pattern.compile("\\s*(-?\\s*\\d*)\\s*\\*?\\s*([\\w\\^]*)");
     
     private static final Pattern VARPAT = Pattern.compile("[A-Za-z]+[\\w\\^]*");
 
@@ -52,17 +58,21 @@ public class JSONModule extends GradedModule<Sq> {
      * @throws ParseException 
      */
     public JSONModule(Map<String,Integer> generators, List<String> relations) throws ParseException{
-        /* Variable name ==> internal generator object */
+        // Default to the sphere.
         if(generators==null){
             generators = new TreeMap<String,Integer>();
             generators.put("x", 0);
         }
+        
+        // Default to no relations (a wedge of spheres)
         if(relations==null){
             relations = new ArrayList<>();
         }
         
+        /* Variable name ==> internal generator object */
         Map<String,Dot<Sq>> variableMap = new TreeMap<>();
 
+        // Get the variable list and their degrees
         for(Map.Entry<String, Integer> entry : generators.entrySet()){
             String varName = entry.getKey();
             if(!VARPAT.matcher(varName).matches()){
@@ -79,8 +89,12 @@ public class JSONModule extends GradedModule<Sq> {
     
         for(final ListIterator<String> it = relations.listIterator(); it.hasNext();){
             String rel = it.next();
-
-	    final String relationInfo = "relation number " + it.nextIndex() + ": \"" + rel + "\""; // For errors
+            if(rel == null){
+                continue; // Handle trailing comma in relation list (GSON inserts a null into the list).
+            }
+            
+            //  Set up some error messages
+	    final String relationInfo = "relation number " + it.nextIndex() + ": \"" + rel + "\""; 
 	    final String LHSErrorString = "Invalid left hand side in "  + relationInfo + "\n"
                + "Valid relations must have left hand side of the form \"b(<variable>)\", \"Sq<int>(<variable>)\", or \"P<int>(<variable>)\"\n";
 
@@ -101,25 +115,29 @@ public class JSONModule extends GradedModule<Sq> {
 
             boolean shouldBeBeta = false;
             boolean isBeta = false;
-	    int n;
+            String operatorType = LHSmatcher.group(1);
+            String operatorNumberString = LHSmatcher.group(2);
+            String operatorName = LHSmatcher.group(1) + LHSmatcher.group(2);
+	    int operatorDegree;
             try {
-               n = Integer.parseInt(LHSmatcher.group(2)); 
+               operatorDegree = Integer.parseInt(operatorNumberString); 
             } catch (NumberFormatException e) {
-               if(LHSmatcher.group(2).isEmpty()){ // Empty is fine as long as expression is "beta(x)"
-                  n=0;
+               if(operatorNumberString.isEmpty()){ // Empty is fine as long as expression is "beta(x)"
+                  operatorDegree = 0;
                   shouldBeBeta = true;
                } else {
                   throw new ParseException(LHSErrorString,0); // Invalid number (I'm not sure how to reach this).
                }
             }
-            switch(LHSmatcher.group(1)){
+
+            switch(operatorType){
 	      case "Sq" : 
                  break;
               case "P":
-                 n*=Config.Q;
+                 operatorDegree *= Config.Q;
                  break;
               case "b":
-                 n=1;
+                 operatorDegree = 1;
                  isBeta = true;
                  break;
               default: // Isn't of the form "Sq", "P" or "b"
@@ -131,28 +149,54 @@ public class JSONModule extends GradedModule<Sq> {
                   throw new ParseException(LHSErrorString,0);// "b" with number                 
              }
 
-             if(!variableMap.containsKey(LHSmatcher.group(3)))
-                 throw new ParseException("Unknown variable \"" + LHSmatcher.group(3) + "\" in " + relationInfo,1);
+             String inputVariableName = LHSmatcher.group(3);
+             if(!variableMap.containsKey(inputVariableName))
+                 throw new ParseException("Unknown variable \"" + inputVariableName + "\" in " + relationInfo,1);
              Dot<Sq> inputVariable = variableMap.get(LHSmatcher.group(3));
+             int inputVariableDegree = inputVariable.deg[1];
              DModSet<Sq> outputSet = new DModSet<>();
-             for(String term : RHS.split("\\+")){
+             // Convert + into +- so that - is part of coefficient. Split on plus.
+             for(String term : RHS.replace("-","+-").split("\\+")){
                  term = term.trim();
+                 if(term.isEmpty()){ continue;} // This handles expressions that start with - and also ++.
                  Matcher termMatcher = TERMPAT.matcher(term);
                  if(!termMatcher.find()){
                     throw new ParseException("Invalid term " + term + " in " + relationInfo,0);
                  }
+                 String ceofficientSring = termMatcher.group(1);
+                 String termVariableName = termMatcher.group(2);
+                 
                  int coeff;
                  try {
-                    coeff = (termMatcher.group(1).isEmpty()) ? 1 : Integer.parseInt(termMatcher.group(1)); // Error if this fails
+                    if(ceofficientSring.isEmpty()){
+                        coeff = 1;
+                    } else if("-".equals(ceofficientSring.trim())){
+                        coeff = -1;
+                    } else {
+                        coeff = Integer.parseInt(ceofficientSring.replace(" ",""));  
+                    }
                  } catch (NumberFormatException e) {
-                    throw new ParseException("Invalid coefficient " + termMatcher.group(1) + " in term " + term + " of " + relationInfo,0);
+                    throw new ParseException("Invalid coefficient \"" + ceofficientSring + "\" in term \"" + term + "\" of " + relationInfo,0);
                  }
-                 if(!variableMap.containsKey(termMatcher.group(2)))
-                     throw new ParseException("Unknown variable \"" + termMatcher.group(2) + "\" in " + relationInfo,1);
-                 Dot<Sq> variable = variableMap.get(termMatcher.group(2)); // Error if this fails
-                 outputSet.add(variable,coeff);
+                 
+                 if(!variableMap.containsKey(termVariableName ))
+                     throw new ParseException("Unknown variable \"" + termVariableName + "\" in " + relationInfo,1);
+                 Dot<Sq> termVariable = variableMap.get(termMatcher.group(2));
+                 int termVariableDegree = termVariable.deg[1];
+                 if(termVariableDegree != inputVariableDegree + operatorDegree){
+                     throw new ParseException(String.format(
+                        "Variable \"%s\" in " + relationInfo + " has the wrong degree. |%s| = %d, but |%s| + |%s| = %d",
+                        termVariableName, termVariableName, termVariableDegree, operatorName, inputVariableName, operatorDegree + inputVariableDegree
+                     ),1);
+                 }
+                 
+                 // Maybe the user used the same variable more than once. If so, combine like terms.
+                 if(outputSet.get(termVariable)!=null){
+                    coeff += outputSet.get(termVariable);
+                 }
+                 outputSet.put(termVariable,coeff);
              }
-	     actions.get(inputVariable).put(n,outputSet);
+	     actions.get(inputVariable).put(operatorDegree,outputSet);
         }
     }
  

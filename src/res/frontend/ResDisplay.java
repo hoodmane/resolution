@@ -189,7 +189,7 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
     private void drawLine(Graphics2D g,double x1,double y1,double x2,double y2){
         g.draw(new Line2D.Double(x1, y1, x2, y2));
     }
-    
+     
     private void drawStructline(Graphics2D g, U u,BasedLineDecoration<U> d){
         g.setColor(d.color);
         if(pos.get(u)!=null && pos.get(d.dest)!=null){//if(isVisible(u) && isVisible(d.dest)){
@@ -311,9 +311,9 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
 
         /* draw dots */
         g.setColor(Color.black);
-        for(U u : frameVisibles){
-            drawDot(g,u);
-        }
+        frameVisibles.forEach((u) -> 
+            drawDot(g,u)
+        );
 
         /* draw axes */
         int bmy = getHeight() - MARGIN_WIDTH;
@@ -337,6 +337,7 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         block_width = 1 + (29.0 * Math.pow(ZOOM_BASE,zoom));
         double oldscale = scale;
         scale = block_width/30.0;
+        // Update (viewx,viewy) so that zoom centers on mouse.
         viewx += mousex*(1/scale - 1/oldscale);
         viewy -= (getHeight()-mousey)*(1/scale - 1/oldscale);
         xoffset = scale * viewx;
@@ -442,7 +443,7 @@ class ControlPanel2D extends Box {
         setup_gui(parent);
     }
 
-    void setup_gui(final ResDisplay<?> parent)
+    private void setup_gui(final ResDisplay<?> parent)
     {
 
         /* filtration sliders */
