@@ -10,6 +10,12 @@ import java.util.*;
 import javax.swing.*;
 import javax.swing.event.*;
 import res.spectralsequencediagram.*;
+import de.erichseifert.vectorgraphics2d.*;
+import de.erichseifert.vectorgraphics2d.intermediate.CommandSequence;
+import de.erichseifert.vectorgraphics2d.pdf.PDFProcessor;
+import de.erichseifert.vectorgraphics2d.util.PageSize;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JPanel 
         implements PingListener, MouseMotionListener, MouseListener, MouseWheelListener
@@ -22,6 +28,8 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     final static int DEFAULT_WINDOW_WIDTH = 1600;
     final static int DEFAULT_WINDOW_HEIGHT = 800;
     final static int MARGIN_WIDTH = 30;
+    final static int INITIAL_ORIGIN_MOUSEX = MARGIN_WIDTH; // These are to get the scaling right if user specifies "scale" in the json.
+    final static int INITIAL_ORIGIN_MOUSEY = DEFAULT_WINDOW_HEIGHT - MARGIN_WIDTH + 400; // why is this 50 here?
 
     final static Color transparent = new Color(0,0,0,0);
     
@@ -58,25 +66,17 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     int mousex = -1;
     int mousey = -1;    
     
-    final JFrame frame;
+    JFrame frame;
     JTextArea textarea = null;
 
-    /*
-     * Setup methods: each of these get called in order to initialize the display:
-     *    constructFrontEnd()
-     *       ResDisplay()
-     *       setBackened()
-     *    setScale() (optional)
-     *    start()
-     *     
-     */
+
     
     public static SpectralSequenceDisplay constructFrontend(SpectralSequence sseq) 
     {
-        SpectralSequenceDisplay d = new SpectralSequenceDisplay<>();
-        d.sseq = sseq;
-        sseq.addListener(d);
-        d.setupGradings();
+        SpectralSequenceDisplay d = new SpectralSequenceDisplay(sseq);
+        d.frame = new JFrame("Resolution");
+        d.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        d.frame.setSize(DEFAULT_WINDOW_WIDTH,DEFAULT_WINDOW_HEIGHT);        
         JFrame fr = d.frame;
         fr.getContentPane().add(d, BorderLayout.CENTER);
         fr.getContentPane().add(new ControlPanel2D(d), BorderLayout.EAST);
@@ -86,10 +86,20 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         return d;
     }
     
-    private SpectralSequenceDisplay(){
-        frame = new JFrame("Resolution");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(DEFAULT_WINDOW_WIDTH,DEFAULT_WINDOW_HEIGHT);        
+    /**
+     * 
+     * @param sseq The spectral sequence to draw
+     * @return A SpectralSequenceDisplay object. Use sseqDisplay.paint(vectorGraphics2D) to make 
+     */
+    public static SpectralSequenceDisplay constructImageWriter(SpectralSequence sseq) 
+    {
+        return new SpectralSequenceDisplay(sseq);
+    }    
+    
+    private SpectralSequenceDisplay(SpectralSequence sseq){
+        this.sseq = sseq;
+        sseq.addListener(this);
+        this.setupGradings();
     }
     
     private void setupGradings()
@@ -124,6 +134,8 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     }
     
     private void initializePosition(){
+        mousex = INITIAL_ORIGIN_MOUSEX;
+        mousey = INITIAL_ORIGIN_MOUSEY;
         updateOffsets(); // We have to call this to initialize block_width and block_height.
         viewx = MARGIN_WIDTH + block_width/2; // Which are needed to initialize viewx and viewy
         viewy = - MARGIN_WIDTH + 0.5*block_height;
@@ -195,7 +207,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         if(pos.get(source)!=null && pos.get(target)!=null){//if(isVisible(u) && isVisible(d.dest)){
             drawStructlineHelper(g,pos.get(source),pos.get(target));
         }
-                g.setColor(sl.getColor());
+//          g.setColor(sl.getColor());
 //        AffineTransform saveTransform = g.getTransform();        
 //        double[] source = pos.get(sl.getSource());
 //        double[] target = pos.get(sl.getTarget());
@@ -233,9 +245,10 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         g.setColor(Color.black);
         AffineTransform saveTransform = g.getTransform();
         double p[] = pos.get(c);
-        AffineTransform affineTransform = new AffineTransform();
-        affineTransform.setToTranslation(p[0] - 3 + block_width/2,p[1] - 3 - block_height/2);
-        g.setTransform(affineTransform);
+        if(p==null){
+            return;
+        }
+        g.translate(p[0] - 3 + block_width/2,p[1] - 3 - block_height/2);
         g.fill(c.getShape(0));
         g.setTransform(saveTransform);
     }
@@ -244,6 +257,12 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     {
         super.paintComponent(graphics);
         Graphics2D g = (Graphics2D) graphics;
+//        g.setRenderingHint( 
+//            RenderingHints.KEY_ANTIALIASING, 
+//            RenderingHints.VALUE_ANTIALIAS_ON);
+//        g.setRenderingHint(
+//            RenderingHints.KEY_RENDERING, 
+//            RenderingHints.VALUE_RENDER_QUALITY);
         
         /* calculate visible region */
         int min_x_visible = (int) getChartX(-3*block_width);
@@ -277,7 +296,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
             }
         }                
         
-        /* assign dots a location; at this point we definitively decide what's visible */
+        /* assign classes a location; at this point we definitively decide what's visible */
         Set<SseqClass> frameVisibles = new TreeSet<>();
         pos = new TreeMap<>();
         for(int x = min_x_visible; x <= max_x_visible; x++) {
@@ -405,6 +424,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
 
     @Override public void mouseClicked(MouseEvent evt)
     {
+        System.out.println(evt.getX() + ", " + evt.getY());
         int x = (int) getChartX(evt.getX());
         int y = (int) getChartY(evt.getY());
         if(x >= 0 && y >= 0) {
@@ -452,6 +472,22 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         int[] s = multideg(selx, sely);
         if(deg[0] == s[0] && deg[1] == s[1])
             setSelected(selx,sely); // updates text
+    }
+    
+    public void writeToFile(String filename){
+        Graphics2D vg2d = new VectorGraphics2D();
+        AffineTransform transform = AffineTransform.getScaleInstance(0.3, 0.3);
+        transform.translate(MARGIN_WIDTH, MARGIN_WIDTH);
+        vg2d.setTransform(transform);
+        this.paint(vg2d);
+        CommandSequence commands = ((VectorGraphics2D) vg2d).getCommands();
+        PDFProcessor pdfProcessor = new PDFProcessor(true);
+        Document doc = pdfProcessor.getDocument(commands, new PageSize(528,297));
+        try{
+            doc.writeTo(new FileOutputStream(filename));
+        }catch(IOException e) {
+            
+        }
     }
 }
 

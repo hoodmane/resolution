@@ -17,6 +17,7 @@ public class JSONSpecification {
     public int max_stem;
     public String tex_output;
     public String json_output;
+    public String pdf_output;    
     public double xscale;
     public double yscale;
     public double scale;

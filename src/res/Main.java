@@ -18,6 +18,7 @@ public class Main {
     
     private static String texOutputFilename;
     private static String jsonOutputFilename;
+    private static String pdfOutputFilename;
     public static void die_if(boolean test, String fail)
     {
         if(test) {
@@ -56,6 +57,7 @@ public class Main {
            ResMath.calcInverses();
            texOutputFilename = spec.tex_output;
            jsonOutputFilename = spec.json_output;
+           pdfOutputFilename = spec.pdf_output;
            if(spec.xscale>0){
                Config.xscale = spec.xscale;
            }
@@ -195,6 +197,7 @@ public class Main {
     {
         /* backend */
         BrunerBackend<T> back = new BrunerBackend<>(alg,mod);
+        SpectralSequenceDisplay display =  SpectralSequenceDisplay.constructFrontend(back).setScale(Config.xscale,Config.yscale).start();
         if(texOutputFilename!=null){
             back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(back).writeToFile("tex/"+texOutputFilename);});
         }
@@ -203,8 +206,13 @@ public class Main {
             back.registerDoneCallback(() -> {new ExportSpectralSequenceToJSON(back).writeToFile("tex/"+jsonOutputFilename);});
         }
                 
-        SpectralSequenceDisplay.constructFrontend(back).setScale(Config.xscale,Config.yscale).start();
-
+        if(pdfOutputFilename!=null){
+            back.registerDoneCallback(() -> { 
+                
+                display.writeToFile("tex/"+pdfOutputFilename);
+            });
+        }        
+        
         /* off we go */
         back.start();
     }
