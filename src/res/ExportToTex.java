@@ -3,17 +3,14 @@ package res;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import res.algebra.MultigradedElement;
-import res.algebra.MultigradedVectorSpace;
-import res.transform.Decorated;
+import res.spectralsequencediagram.*;
 
 
 /**
  *
  * @author Hood
- * @param <U>
  */
-public class ExportToTex <U extends MultigradedElement<U>> {
+public class ExportToTex {
     private final StringBuilder classes;
     private final StringBuilder structlines;
     private final StringBuilder output;
@@ -21,30 +18,20 @@ public class ExportToTex <U extends MultigradedElement<U>> {
     private final String texHead = "\\documentclass{spectralsequence-example}\n\\begin{document}\n\\begin{sseqpage}\n";
     private final String texFoot = "\\end{sseqpage}\n\\end{document}\n";
     
-    Decorated<U, ? extends MultigradedVectorSpace<U>> dec;
-    MultigradedVectorSpace<U> comp;
+    SpectralSequence sseq;
     
-    public ExportToTex(Decorated<U, ? extends MultigradedVectorSpace<U>> dec){
-        this.dec = dec;
-        comp = dec.underlying();
-        classes = new StringBuilder(20*comp.totalGens());
-        structlines = new StringBuilder(20*comp.totalGens());
-        output = new StringBuilder(40*comp.totalGens());
+    public ExportToTex(SpectralSequence sseq){
+        this.sseq = sseq;
+        classes = new StringBuilder(20*sseq.totalGens());
+        structlines = new StringBuilder(20*sseq.totalGens());
+        output = new StringBuilder(40*sseq.totalGens());
         for(int x=0; x<Config.T_CAP;x++){
             for(int y=0;y+x<Config.T_CAP;y++){
-                comp.gens(multideg(x,y)).forEach((g)->{
-                    addClass(g);
-//                    dec.getBasedLineDecorations(u).stream().filter((d) -> !(! frameVisibles.contains(d.dest))).map((d) -> {
-//                        g.setColor(d.color);
-//                        return pos.get(d.dest);
-//                    }).forEachOrdered((p2) -> {
-//                        g.drawLine(p1[0], p1[1], p2[0], p2[1]);
-//                    });                    
-                    dec.getStructlineDecorations(g).stream().map((d) -> {
-                        return d.dest;
-                    }).forEachOrdered((dest) -> {
-                        addStructline(g,dest);
-                    });                    
+                sseq.getClasses(multideg(x,y)).forEach((c)->{
+                    addClass(c);
+                    c.getStructlines().stream().forEach((sl) -> 
+                        addStructline(sl)
+                    );
                 });
             }
         }
@@ -68,14 +55,14 @@ public class ExportToTex <U extends MultigradedElement<U>> {
         }
     }
     
-    private void addClass(U g){
+    private void addClass(SseqClass g){
         int x = g.deg()[0];
         int y = g.deg()[1];
         classes.append(String.format("\\class[name=%s](%d,%d)\n", g.name(),y-x,x));
     }
     
-    private void addStructline(U source,U dest){
-        structlines.append(String.format("\\structline(%s)(%s)\n", source.name(),dest.name()));
+    private void addStructline(Structline sl){
+        structlines.append(String.format("\\structline(%s)(%s)\n", sl.getSource().name(),sl.getTarget().name()));
     }
     
     @Override

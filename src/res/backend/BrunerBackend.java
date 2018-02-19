@@ -6,13 +6,16 @@ import res.transform.*;
 import java.awt.Color;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import res.spectralsequencediagram.*;
 
 
 /* Computes Ext_A^{s,t} (M, Z/2) through a minimal resolution of M, following a paper of Bruner. */
 
 public class BrunerBackend<T extends GradedElement<T>>
     extends MultigradedAlgebra<Generator<T>>
-    implements Backend<Generator<T>, MultigradedAlgebra<Generator<T>>>
+    implements Backend<Generator<T>, MultigradedAlgebra<Generator<T>>>, SpectralSequence
 {
 
 
@@ -26,6 +29,7 @@ public class BrunerBackend<T extends GradedElement<T>>
     private int totalGens = 0;
     
     private Callback doneCallback;
+    private CompoundDecorated<Generator<T>, MultigradedAlgebra<Generator<T>>> dec;
     
     public boolean isDone(){
          return computedStems - 1 == Config.T_CAP;
@@ -35,6 +39,7 @@ public class BrunerBackend<T extends GradedElement<T>>
         doneCallback = f;
     }
     
+    @Override
     public int totalGens(){
         return totalGens;
     }
@@ -42,6 +47,37 @@ public class BrunerBackend<T extends GradedElement<T>>
     public BrunerBackend(GradedAlgebra<T> alg,GradedModule<T> m) {
         this.alg = alg;
         this.module = m;
+        dec = new CompoundDecorated<>(this);
+
+//        Collection<DifferentialRule> diffrules = new ArrayList<DifferentialRule>();
+//        diffrules.add(new DifferentialRule(new int[] {2,1,1}, new int[] {1,1,0}, Color.green));
+//        diffrules.add(new DifferentialRule(new int[] {1,0,2}, new int[] {0,0,1}, Color.red));
+//        dec.add(new DifferentialDecorated<Generator<T>,MultigradedAlgebra<Generator<T>>>(this, diffrules));
+
+        /* // RGB
+        Color[] colors = new Color[] {
+            new Color(128,0,0),
+            new Color(0,128,0),
+            new Color(0,0,128)
+        }; */
+        /* // fading
+        Color[] colors = new Color[] {
+            new Color(0,0,0),
+            new Color(0,0,0),
+            new Color(96,96,96),
+            new Color(192,192,192)
+        };*/
+        // black
+        Color[] colors = new Color[] {
+            new Color(0,0,0),
+            new Color(0,0,0),
+            new Color(0,0,0),
+        };
+        List<T> distinguished = alg.distinguished();
+        Collection<ProductRule> prodrules = new ArrayList<>();
+        for(int i = 0; i < colors.length && i < distinguished.size(); i++)
+            prodrules.add(new ProductRule("h_"+i, distinguished.get(i), true, false, false, colors[i]));
+        dec.add(new ProductDecorated<>(this, prodrules));        
     }
     
 
@@ -377,46 +413,59 @@ public class BrunerBackend<T extends GradedElement<T>>
                 putTask(new BrunerResTask(BrunerResTask.COMPUTE, s, t+1)); /* move right */
     }
     
-
+    /**
+     * Java needs some coercion to downcast Collection<T> to Collection<S> where S is a superclass of T. This is because
+     * neither is a subtype of the other.
+     * @param <T> Some class
+     * @param <S> a super class of T
+     * @param c a collection of T 
+     * @return c downcast from a collection of T to a collection of S
+     */
+    static <S,T extends S> Collection<S> ConvertCollection(Collection<T> c){
+        return c.stream().map((T t) -> (S) t).collect(Collectors.toList());
+    }
+    /**
+     * A variant of ConvertCollection that takes a stream.
+     * @param <T> Some class
+     * @param <S> a super class of T
+     * @param c a collection of T 
+     * @return c downcast from a steam of T to a collection of S
+     */
+    static <S,T extends S> Collection<S> ConvertCollection(Stream<T> c){
+        return c.map((T t) -> (S) t).collect(Collectors.toList());
+    }    
+    
     /* admin */
 
+
     @Override
-    public Decorated<Generator<T>, MultigradedAlgebra<Generator<T>>> getDecorated()
-    {
-        CompoundDecorated<Generator<T>,MultigradedAlgebra<Generator<T>>> dec = new CompoundDecorated<>(this);
-
-//        Collection<DifferentialRule> diffrules = new ArrayList<DifferentialRule>();
-//        diffrules.add(new DifferentialRule(new int[] {2,1,1}, new int[] {1,1,0}, Color.green));
-//        diffrules.add(new DifferentialRule(new int[] {1,0,2}, new int[] {0,0,1}, Color.red));
-//        dec.add(new DifferentialDecorated<Generator<T>,MultigradedAlgebra<Generator<T>>>(this, diffrules));
-
-        /* // RGB
-        Color[] colors = new Color[] {
-            new Color(128,0,0),
-            new Color(0,128,0),
-            new Color(0,0,128)
-        }; */
-        /* // fading
-        Color[] colors = new Color[] {
-            new Color(0,0,0),
-            new Color(0,0,0),
-            new Color(96,96,96),
-            new Color(192,192,192)
-        };*/
-        // black
-        Color[] colors = new Color[] {
-            new Color(0,0,0),
-            new Color(0,0,0),
-            new Color(0,0,0),
-        };
-        List<T> distinguished = alg.distinguished();
-        Collection<ProductRule> prodrules = new ArrayList<>();
-        for(int i = 0; i < colors.length && i < distinguished.size(); i++)
-            prodrules.add(new ProductRule("h_"+i, distinguished.get(i), true, false, false, colors[i]));
-        dec.add(new ProductDecorated<>(this, prodrules));
-
-        return dec;
+    public Collection<SseqClass> getClasses() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
+
+    @Override
+    public Collection<SseqClass> getClasses(int x, int y) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public Collection<SseqClass> getClasses(int[] p) {
+        // Just have to convince Java to regart our Collection of Generator<T> as a collection of SseqClass.
+        return ConvertCollection(gens(p).stream().map((g) -> g.setStructlines(ConvertCollection(dec.getStructlineDecorations(g)))));
+    }
+
+    @Override
+    public Collection<Structline> getStructlines() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+
+    @Override
+    public int getState(int x, int y) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+
 }
 
 class BrunerResTaskThread extends Thread

@@ -1,9 +1,9 @@
 package res.algebra;
 
-public interface MultigradedElement<T> extends Comparable<T>
+import res.spectralsequencediagram.SseqClass;
+
+public interface MultigradedElement<T> extends Comparable<T>, SseqClass
 {
-    int[] deg();
-    String extraInfo();
-    String name();
+    
 }
 

@@ -1,4 +1,9 @@
 package res.algebra;
+import java.awt.Shape;
+import java.awt.geom.Ellipse2D;
+import java.util.Collection;
+import res.spectralsequencediagram.*;
+
 
 public class Generator<T extends GradedElement<T>> implements MultigradedElement<Generator<T>>
 {
@@ -7,6 +12,7 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
     public int[] deg;
     public int idx;
     public String extraInfo = "";
+    private Collection<Structline> structlines;
     
     public Generator(int[] deg, int idx)
     {
@@ -48,5 +54,31 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
 
     public String name() {
         return String.format("%d-%d-%d",deg[0],deg[1],idx);
+    }
+    
+    public Generator<T> setStructlines(Collection<Structline> sls){
+        this.structlines = sls;
+        return this;
+    }
+
+
+    @Override
+    public int getDeathPage() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public Shape getShape(int page) {
+        return new Ellipse2D.Double( 0, 0, 6, 6);
+    }
+
+    @Override
+    public Collection<Structline> getStructlines() {
+        return structlines;
+    }
+
+    @Override
+    public Collection<Structline> getDifferentials() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

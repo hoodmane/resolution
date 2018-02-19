@@ -107,7 +107,7 @@ public class Main {
 
             /* intervene for the Cartan-Eilenberg option */
             if(sd.algcombo.getSelectedItem() == SettingsDialog.ALGCE) {
-                startCE();
+//                startCE();
                 return;
             }
 
@@ -192,32 +192,31 @@ public class Main {
     {
         /* backend */
         BrunerBackend<T> back = new BrunerBackend<>(alg,mod);
-        Decorated<Generator<T>, ? extends MultigradedVectorSpace<Generator<T>>> dec = back.getDecorated();
         if(texOutputFilename!=null){
-            back.registerDoneCallback(() -> {new ExportToTex(dec).writeToFile("tex/"+texOutputFilename);});
+            back.registerDoneCallback(() -> {new ExportToTex(back).writeToFile("tex/"+texOutputFilename);});
         }
         
-        ResDisplay.constructFrontend(dec).setScale(Config.xscale,Config.yscale).start();
+        SpectralSequenceDisplay.constructFrontend(back).setScale(Config.xscale,Config.yscale).start();
 
         /* off we go */
         back.start();
     }
 
-    static void startCE()
-    {
-        CotorLiftingBackend back = new CotorLiftingBackend();
-        Decorated<Generator<Sq>, ? extends MultigradedVectorSpace<Generator<Sq>>> dec = back.getDecorated();
-
-        /* frontend */
-        String s = sd.front.getSelection().getActionCommand();
-        if(s == SettingsDialog.FRONT3D)
-            ResDisplay3D.constructFrontend(dec);
-        else
-            ResDisplay.constructFrontend(dec);
-
-        /* off we go */
-        back.start();
-    }
+//    static void startCE()
+//    {
+//        CotorLiftingBackend back = new CotorLiftingBackend();
+//        Decorated<Generator<Sq>, ? extends MultigradedVectorSpace<Generator<Sq>>> dec = back.getDecorated();
+//
+//        /* frontend */
+//        String s = sd.front.getSelection().getActionCommand();
+//        if(s == SettingsDialog.FRONT3D)
+//            ResDisplay3D.constructFrontend(dec);
+//        else
+//            ResDisplay.constructFrontend(dec);
+//
+//        /* off we go */
+//        back.start();
+//    }
 
 }
 

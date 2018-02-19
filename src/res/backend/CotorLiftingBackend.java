@@ -664,7 +664,6 @@ public class CotorLiftingBackend
 
 
     /* admin */
-    @Override
     public Decorated<Generator<Sq>, MultigradedVectorSpace<Generator<Sq>>> getDecorated()
     {
         CompoundDecorated<Generator<Sq>,MultigradedVectorSpace<Generator<Sq>>> dec = new CompoundDecorated<>(this);
@@ -704,12 +703,6 @@ public class CotorLiftingBackend
 
         System.exit(0);
     }
-
-    @Override
-    public int totalGens() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
 }
 
 class CotorLiftingResTaskThread extends Thread

@@ -14,7 +14,6 @@ public abstract class MultigradedVectorSpace<T extends MultigradedElement<T>> im
     private final Set<PingListener> listeners = new HashSet<>();
 
     public abstract int num_gradings();
-    public abstract int totalGens();
     public abstract int getState(int[] i); /* what's the state of computation for the given multi-index */
     public abstract Collection<T> gens(int[] i);
     public void start() { }

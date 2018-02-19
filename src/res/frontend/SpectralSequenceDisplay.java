@@ -9,8 +9,9 @@ import java.awt.geom.*;
 import java.util.*;
 import javax.swing.*;
 import javax.swing.event.*;
+import res.spectralsequencediagram.*;
 
-public class ResDisplay<U extends MultigradedElement<U>> extends JPanel 
+public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JPanel 
         implements PingListener, MouseMotionListener, MouseListener, MouseWheelListener
 {
     final static int DEFAULT_MINFILT = 0;
@@ -35,6 +36,7 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
     
     Decorated<U, ? extends MultigradedVectorSpace<U>> dec;
     MultigradedVectorSpace<U> under;
+    SpectralSequence sseq;
 
     int[] minfilt;
     int[] maxfilt;
@@ -69,10 +71,12 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
      *     
      */
     
-    public static <U extends MultigradedElement<U>> ResDisplay<U> constructFrontend(Decorated<U, ? extends MultigradedVectorSpace<U>> back) 
+    public static SpectralSequenceDisplay constructFrontend(SpectralSequence sseq) 
     {
-        ResDisplay<U> d = new ResDisplay<>();
-        d.setBackend(back);
+        SpectralSequenceDisplay d = new SpectralSequenceDisplay<>();
+        d.sseq = sseq;
+        sseq.addListener(d);
+        d.setupGradings();
         JFrame fr = d.frame;
         fr.getContentPane().add(d, BorderLayout.CENTER);
         fr.getContentPane().add(new ControlPanel2D(d), BorderLayout.EAST);
@@ -82,29 +86,23 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         return d;
     }
     
-    private ResDisplay(){
+    private SpectralSequenceDisplay(){
         frame = new JFrame("Resolution");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(DEFAULT_WINDOW_WIDTH,DEFAULT_WINDOW_HEIGHT);        
     }
     
-    private void setBackend(Decorated<U, ? extends MultigradedVectorSpace<U>> dec)
+    private void setupGradings()
     {
-        if(under != null)
-            under.removeListener(this);
-        this.dec = dec;
-        under = dec.underlying();
-        under.addListener(this);
-
         int i;
         if(minfilt == null) {
             i = 0;
-            minfilt = new int[under.num_gradings()];
-            maxfilt = new int[under.num_gradings()];
-        } else if(minfilt.length != under.num_gradings()) {
+            minfilt = new int[sseq.num_gradings()];
+            maxfilt = new int[sseq.num_gradings()];
+        } else if(minfilt.length != sseq.num_gradings()) {
             i = minfilt.length;
-            minfilt = Arrays.copyOf(minfilt, under.num_gradings());
-            maxfilt = Arrays.copyOf(maxfilt, under.num_gradings());
+            minfilt = Arrays.copyOf(minfilt, sseq.num_gradings());
+            maxfilt = Arrays.copyOf(maxfilt, sseq.num_gradings());
         } else return;
 
         for(; i < minfilt.length; i++) {
@@ -113,13 +111,13 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         } 
     }
     
-    public ResDisplay<U> setScale(double xscale,double yscale){
+    public SpectralSequenceDisplay<U> setScale(double xscale,double yscale){
         this.yscale = yscale/xscale;
         this.zoom = Math.log(xscale)/Math.log(ZOOM_BASE);
         return this;
     }
 
-    public ResDisplay<U> start(){
+    public SpectralSequenceDisplay<U> start(){
         initializePosition();
         this.frame.setVisible(true);
         return this;
@@ -128,7 +126,7 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
     private void initializePosition(){
         updateOffsets(); // We have to call this to initialize block_width and block_height.
         viewx = MARGIN_WIDTH + block_width/2; // Which are needed to initialize viewx and viewy
-        viewy = - MARGIN_WIDTH + 1.5*block_height;
+        viewy = - MARGIN_WIDTH + 0.5*block_height;
         updateOffsets();
     }
     /**
@@ -141,7 +139,7 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         return (block_width * (sx-0.5) +  xoffset);
     }
     private double getScreenY(double sy) {
-        return getHeight() - (block_height * (sy+1.5) - yoffset);
+        return getHeight() - (block_height * (sy+0.5) - yoffset);
     }
     
     private double[] getScreenP(double[] sp){
@@ -172,13 +170,13 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         return new double[] {getChartX(cp[0]),getChartY(cp[1])};
     }
 
-    private boolean isVisible(U d)
+    private boolean isVisible(SseqClass d)
     {
         int[] deg = d.deg();
         for(int i = 2; i < minfilt.length; i++)
             if(deg[i] < minfilt[i] || deg[i] > maxfilt[i])
                 return false;
-        return dec.isVisible(d);
+        return true; //dec.isVisible(d);
     }
 
     private int[] multideg(int x, int y)
@@ -190,10 +188,12 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         g.draw(new Line2D.Double(x1, y1, x2, y2));
     }
      
-    private void drawStructline(Graphics2D g, U u,BasedLineDecoration<U> d){
-        g.setColor(d.color);
-        if(pos.get(u)!=null && pos.get(d.dest)!=null){//if(isVisible(u) && isVisible(d.dest)){
-            drawStructlineHelper(g,pos.get(u),pos.get(d.dest));
+    private void drawStructline(Graphics2D g, Structline sl){
+        g.setColor(sl.getColor());
+        SseqClass source = sl.getSource();
+        SseqClass target = sl.getTarget();
+        if(pos.get(source)!=null && pos.get(target)!=null){//if(isVisible(u) && isVisible(d.dest)){
+            drawStructlineHelper(g,pos.get(source),pos.get(target));
         }
     }
     
@@ -208,15 +208,20 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
 
     private void shadeChartCell(Graphics2D g,Color color,double x,double y){
         g.setColor(color);
-        g.fill(new  Rectangle2D.Double(getScreenX(x), getScreenY(y), block_width, block_height));
+        g.fill(new  Rectangle2D.Double(getScreenX(x), getScreenY(y) - block_height, block_width, block_height));
     }
     
-    private TreeMap<U,double[]> pos;
+    private TreeMap<SseqClass,double[]> pos;
     
-    private void drawDot(Graphics2D g, U u){
+    private void drawClass(Graphics2D g, SseqClass c){
         g.setColor(Color.black);
-        double p[] = pos.get(u);
-        g.fill(new Ellipse2D.Double( p[0] - 3 + block_width/2, p[1] - 3 - block_height/2, 6, 6));
+        AffineTransform saveTransform = g.getTransform();
+        double p[] = pos.get(c);
+        AffineTransform affineTransform = new AffineTransform();
+        affineTransform.setToTranslation(p[0] - 3 + block_width/2,p[1] - 3 - block_height/2);
+        g.setTransform(affineTransform);
+        g.fill(c.getShape(0));
+        g.setTransform(saveTransform);
     }
     
     @Override public void paintComponent(Graphics graphics)
@@ -257,11 +262,11 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         }                
         
         /* assign dots a location; at this point we definitively decide what's visible */
-        Set<U> frameVisibles = new TreeSet<>();
+        Set<SseqClass> frameVisibles = new TreeSet<>();
         pos = new TreeMap<>();
         for(int x = min_x_visible; x <= max_x_visible; x++) {
             for(int y = min_y_visible; y <= max_y_visible; y++) {
-                int cellState = under.getState(multideg(x,y));
+                int cellState = sseq.getState(multideg(x,y));
                 Color cellColor;
                 if(x == selx && y == sely) {
                     cellColor = Color.orange;
@@ -275,16 +280,16 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
                     continue;
                 }
                 
-                Collection<U> gens = under.gens(multideg(x,y));
+                Collection<SseqClass> classes = sseq.getClasses(multideg(x,y));
 
                 int visible;
-                synchronized(gens) {
-                    visible = (int) gens.stream().filter((d) -> (isVisible(d))).map((d) -> {
+                synchronized(classes) {
+                    visible = (int) classes.stream().filter((d) -> (isVisible(d))).map((d) -> {
                         frameVisibles.add(d);
                         return d;
                     }).count();
                     int offset = -5 * (visible-1) / 2;
-                    for(U d : gens) { 
+                    for(SseqClass d : classes) { 
                         if(frameVisibles.contains(d)) {
                             double[] newpos = new double[] { getScreenX(x) + offset, getScreenY(y) - offset/2 };
                             pos.put(d, newpos);
@@ -297,22 +302,22 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
  
 
         /* draw decorations */
-        frameVisibles.forEach((U u) -> {
+        frameVisibles.forEach((SseqClass u) -> {
             /* based */
-            dec.getStructlineDecorations(u).forEach((d) ->
-                drawStructline(g,u,d)
+            u.getStructlines().forEach((s) ->
+                drawStructline(g,s)
             );
             
-            /* unbased */
-            dec.getUnbasedStructlineDecorations(u).forEach((d) -> 
-                drawUnbasedStructline(g,u,d)
-            );
+//            /* unbased */
+//            dec.getUnbasedStructlineDecorations(u).forEach((d) -> 
+//                drawUnbasedStructline(g,u,d)
+//            );
         });
 
         /* draw dots */
         g.setColor(Color.black);
-        frameVisibles.forEach((u) -> 
-            drawDot(g,u)
+        frameVisibles.forEach((c) -> 
+            drawClass(g,c)
         );
 
         /* draw axes */
@@ -355,7 +360,7 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
         if(textarea == null) return;
 
         String ret = "";
-        switch(under.getState(multideg(x,y))) {
+        switch(sseq.getState(multideg(x,y))) {
             case MultigradedVectorSpace.STATE_VANISHES:
                 ret = "This degree vanishes formally.";
                 break;
@@ -371,10 +376,10 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
             case MultigradedVectorSpace.STATE_DONE:
             default:
                 ret += "Bidegree ("+x+","+y+")\n";
-                Collection<U> gens = under.gens(multideg(x,y));
-                for(U d : gens) if(isVisible(d)) {
-                    ret += "\n" + d.toString();
-                    ret += "\n" + d.extraInfo();
+                Collection<SseqClass> classes = sseq.getClasses(multideg(x,y));
+                for(SseqClass c : classes) if(isVisible(c)) {
+                    ret += "\n" + c.toString();
+                    ret += "\n" + c.extraInfo();
                     ret += "\n";
                 }
         }
@@ -436,14 +441,14 @@ public class ResDisplay<U extends MultigradedElement<U>> extends JPanel
 
 class ControlPanel2D extends Box {
 
-    ControlPanel2D(final ResDisplay<?> parent)
+    ControlPanel2D(final SpectralSequenceDisplay<?> parent)
     {
         super(BoxLayout.Y_AXIS);
 
         setup_gui(parent);
     }
 
-    private void setup_gui(final ResDisplay<?> parent)
+    private void setup_gui(final SpectralSequenceDisplay<?> parent)
     {
 
         /* filtration sliders */
