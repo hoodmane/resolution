@@ -172,7 +172,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
 
     private boolean isVisible(SseqClass d)
     {
-        int[] deg = d.deg();
+        int[] deg = d.getDegree();
         for(int i = 2; i < minfilt.length; i++)
             if(deg[i] < minfilt[i] || deg[i] > maxfilt[i])
                 return false;
@@ -195,6 +195,22 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         if(pos.get(source)!=null && pos.get(target)!=null){//if(isVisible(u) && isVisible(d.dest)){
             drawStructlineHelper(g,pos.get(source),pos.get(target));
         }
+                g.setColor(sl.getColor());
+//        AffineTransform saveTransform = g.getTransform();        
+//        double[] source = pos.get(sl.getSource());
+//        double[] target = pos.get(sl.getTarget());
+//        double x0 = target[0];
+//        double y0 = target[1];
+//        double dx = target[0]-source[0];
+//        double dy = target[1]-source[1];
+//        double veclen = Math.sqrt(Math.pow(dx,2)+Math.pow(dy,2));
+//        
+//        AffineTransform affineTransform = new AffineTransform();
+//        affineTransform.scale(veclen,veclen);
+//        affineTransform.rotate(Math.atan2(dy, dx));
+//        affineTransform.translate(x0, y0);
+//        
+//        g.draw(sl.getShape());
     }
     
     private void drawUnbasedStructline(Graphics2D g, U u,UnbasedLineDecoration<U> d){

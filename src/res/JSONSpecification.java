@@ -16,6 +16,7 @@ public class JSONSpecification {
     public List<String> relations;
     public int max_stem;
     public String tex_output;
+    public String json_output;
     public double xscale;
     public double yscale;
     public double scale;

@@ -22,6 +22,7 @@ public class BrunerBackend<T extends GradedElement<T>>
     private final GradedAlgebra<T> alg;
     private final GradedModule<T> module;
 
+    private Set<SseqClass> gens = new HashSet<SseqClass>();
     private Map<int[],Set<Generator<T>>> gensByMultidegree = new TreeMap<>(Multidegrees.multidegComparator);
     private Map<int[],BrunerCellData<T>> output = new TreeMap<>(Multidegrees.multidegComparator);
     
@@ -35,8 +36,12 @@ public class BrunerBackend<T extends GradedElement<T>>
          return computedStems - 1 == Config.T_CAP;
     }
     
-    public void registerDoneCallback(Callback f){
-        doneCallback = f;
+    private final Set<Callback> doneCallbacks = new HashSet<>();
+    
+    @Override
+    public BrunerBackend<T> registerDoneCallback(Callback f){
+        doneCallbacks.add(f);
+        return this;
     }
     
     @Override
@@ -197,6 +202,7 @@ public class BrunerBackend<T extends GradedElement<T>>
                 s.add(g);
                 gensByMultidegree.put(deg,s);
             }
+            gens.add(g);
             totalGens++;
         }
     }
@@ -392,9 +398,7 @@ public class BrunerBackend<T extends GradedElement<T>>
         if(s == t){
             computedStems ++;
             if(isDone()){
-                if(this.doneCallback !=null){
-                    doneCallback.call();
-                }
+                doneCallbacks.forEach((f) -> f.call());
             }
         }
     
@@ -440,7 +444,7 @@ public class BrunerBackend<T extends GradedElement<T>>
 
     @Override
     public Collection<SseqClass> getClasses() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return gens;
     }
 
     @Override
@@ -454,9 +458,13 @@ public class BrunerBackend<T extends GradedElement<T>>
         return ConvertCollection(gens(p).stream().map((g) -> g.setStructlines(ConvertCollection(dec.getStructlineDecorations(g)))));
     }
 
+    /**
+     *
+     * @return
+     */
     @Override
     public Collection<Structline> getStructlines() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return gens.stream().filter((g) -> g.getStructlines()!=null).flatMap((g) -> g.getStructlines().stream()).collect(Collectors.toList());
     }
 
 

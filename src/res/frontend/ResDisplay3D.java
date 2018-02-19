@@ -91,7 +91,7 @@ public class ResDisplay3D<U extends MultigradedElement<U>> extends JPanel implem
                 if(gens == null) break;
                 
                 for(U d : gens) {
-                    int nov = (d.deg().length >= 3 ? d.deg()[2] : 0);
+                    int nov = (d.getDegree().length >= 3 ? d.getDegree()[2] : 0);
                     if(nov < bounds[4] || nov > bounds[5])
                         continue;
 

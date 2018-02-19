@@ -12,10 +12,12 @@ import java.text.ParseException;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import res.spectralsequencediagram.ExportSpectralSequenceToJSON;
 
 public class Main {
     
     private static String texOutputFilename;
+    private static String jsonOutputFilename;
     public static void die_if(boolean test, String fail)
     {
         if(test) {
@@ -53,6 +55,7 @@ public class Main {
            }
            ResMath.calcInverses();
            texOutputFilename = spec.tex_output;
+           jsonOutputFilename = spec.json_output;
            if(spec.xscale>0){
                Config.xscale = spec.xscale;
            }
@@ -193,9 +196,13 @@ public class Main {
         /* backend */
         BrunerBackend<T> back = new BrunerBackend<>(alg,mod);
         if(texOutputFilename!=null){
-            back.registerDoneCallback(() -> {new ExportToTex(back).writeToFile("tex/"+texOutputFilename);});
+            back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(back).writeToFile("tex/"+texOutputFilename);});
         }
         
+        if(jsonOutputFilename!=null){
+            back.registerDoneCallback(() -> {new ExportSpectralSequenceToJSON(back).writeToFile("tex/"+jsonOutputFilename);});
+        }
+                
         SpectralSequenceDisplay.constructFrontend(back).setScale(Config.xscale,Config.yscale).start();
 
         /* off we go */

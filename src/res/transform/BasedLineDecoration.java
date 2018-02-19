@@ -2,6 +2,7 @@ package res.transform;
 
 import java.awt.Color;
 import java.awt.Shape;
+import java.awt.geom.Line2D;
 import res.spectralsequencediagram.SseqClass;
 import res.spectralsequencediagram.Structline;
 
@@ -29,8 +30,7 @@ public class BasedLineDecoration<T extends SseqClass> implements Structline {
 
     @Override
     public Shape getShape() {
-        //new Line;
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return new Line2D.Double(0,0,1,0);        
     }
 
     @Override

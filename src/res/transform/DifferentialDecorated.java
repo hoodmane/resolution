@@ -25,8 +25,8 @@ public class DifferentialDecorated<U extends MultigradedElement<U>, T extends Mu
 
         rules.forEach((rule) -> {
             int[] i = Arrays.copyOf(rule.initial, rule.initial.length);
-            for(int j = 0; j < i.length && j < u.deg().length; j++)
-                i[j] += u.deg()[j];
+            for(int j = 0; j < i.length && j < u.getDegree().length; j++)
+                i[j] += u.getDegree()[j];
             while(und.getState(i) >= MultigradedVectorSpace.STATE_OK_TO_QUERY) {
                 if(und.gens(i) == null) {
                     System.out.print("null gens at i: ");

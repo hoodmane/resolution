@@ -10,7 +10,7 @@ import res.spectralsequencediagram.*;
  *
  * @author Hood
  */
-public class ExportToTex {
+public class ExportSpectralSequenceToTex {
     private final StringBuilder classes;
     private final StringBuilder structlines;
     private final StringBuilder output;
@@ -20,7 +20,7 @@ public class ExportToTex {
     
     SpectralSequence sseq;
     
-    public ExportToTex(SpectralSequence sseq){
+    public ExportSpectralSequenceToTex(SpectralSequence sseq){
         this.sseq = sseq;
         classes = new StringBuilder(20*sseq.totalGens());
         structlines = new StringBuilder(20*sseq.totalGens());
@@ -42,10 +42,8 @@ public class ExportToTex {
     }
     
     public void writeToFile(String filename){
-        try {
+        try (FileWriter fileWriter = new FileWriter(new File(filename))) {
             System.out.println(filename);
-            File file = new File(filename);
-            FileWriter fileWriter = new FileWriter(file);
             fileWriter.write(this.toString());
             fileWriter.flush();
             fileWriter.close();
@@ -56,13 +54,13 @@ public class ExportToTex {
     }
     
     private void addClass(SseqClass g){
-        int x = g.deg()[0];
-        int y = g.deg()[1];
-        classes.append(String.format("\\class[name=%s](%d,%d)\n", g.name(),y-x,x));
+        int x = g.getDegree()[0];
+        int y = g.getDegree()[1];
+        classes.append(String.format("\\class[name=%s](%d,%d)\n", g.getName(),y-x,x));
     }
     
     private void addStructline(Structline sl){
-        structlines.append(String.format("\\structline(%s)(%s)\n", sl.getSource().name(),sl.getTarget().name()));
+        structlines.append(String.format("\\structline(%s)(%s)\n", sl.getSource().getName(),sl.getTarget().getName()));
     }
     
     @Override

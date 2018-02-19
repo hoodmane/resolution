@@ -703,6 +703,11 @@ public class CotorLiftingBackend
 
         System.exit(0);
     }
+
+    @Override
+    public Backend<Generator<Sq>, MultigradedVectorSpace<Generator<Sq>>> registerDoneCallback(Callback f) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }
 
 class CotorLiftingResTaskThread extends Thread

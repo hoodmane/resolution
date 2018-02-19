@@ -31,7 +31,7 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
         return idx - b.idx;
     }
 
-    @Override public int[] deg()
+    @Override public int[] getDegree()
     {
         return deg;
     }
@@ -52,7 +52,7 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
         return ret;
     }
 
-    public String name() {
+    public String getName() {
         return String.format("%d-%d-%d",deg[0],deg[1],idx);
     }
     
