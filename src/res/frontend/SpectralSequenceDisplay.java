@@ -30,6 +30,10 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     final static int MARGIN_WIDTH = 30;
     final static int INITIAL_ORIGIN_MOUSEX = MARGIN_WIDTH; // These are to get the scaling right if user specifies "scale" in the json.
     final static int INITIAL_ORIGIN_MOUSEY = DEFAULT_WINDOW_HEIGHT - MARGIN_WIDTH + 400; // why is this 50 here?
+    
+    // These are for output to pdf.
+    final static int PAGE_HEIGHT = 300;
+    final static int PAGE_WIDTH  = PAGE_HEIGHT * 16/9; // Screens have a 16 x 9 aspect ratio.
 
     final static Color transparent = new Color(0,0,0,0);
     
@@ -476,15 +480,16 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     
     public void writeToFile(String filename){
         Graphics2D vg2d = new VectorGraphics2D();
-        AffineTransform transform = AffineTransform.getScaleInstance(0.3, 0.3);
+        AffineTransform transform = AffineTransform.getScaleInstance(1.12*PAGE_WIDTH/this.frame.getWidth(),0.98*PAGE_HEIGHT/this.frame.getHeight()); // These magic numbers fit to the page.
         transform.translate(MARGIN_WIDTH, MARGIN_WIDTH);
         vg2d.setTransform(transform);
         this.paint(vg2d);
         CommandSequence commands = ((VectorGraphics2D) vg2d).getCommands();
         PDFProcessor pdfProcessor = new PDFProcessor(true);
-        Document doc = pdfProcessor.getDocument(commands, new PageSize(528,297));
+        Document doc = pdfProcessor.getDocument(commands, new PageSize(PAGE_WIDTH,PAGE_HEIGHT )); // Screens have a 16 : 9 aspect ratio
         try{
             doc.writeTo(new FileOutputStream(filename));
+            System.out.println(filename);
         }catch(IOException e) {
             
         }

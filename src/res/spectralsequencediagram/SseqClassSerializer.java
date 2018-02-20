@@ -20,7 +20,6 @@ public class SseqClassSerializer implements JsonSerializer<SseqClass> {
         int[] naiveDegree=t.getDegree();
         cts.degree = new int[] {naiveDegree[1]-naiveDegree[0],naiveDegree[0]};
         System.out.print(cts.degree[0] + " ");
-        final JsonObject wrapper = new JsonObject();        
         return jsc.serialize(cts,SseqClassToSerialize.class);
     }
 
