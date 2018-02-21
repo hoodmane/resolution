@@ -1,18 +1,25 @@
 package res;
 
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import res.algebra.*;
 import res.backend.*;
 import res.frontend.*;
-import res.transform.*;
 
 import javax.swing.JOptionPane;
 
 import java.text.ParseException;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import res.spectralsequencediagram.ExportSpectralSequenceToJSON;
+import res.spectralsequencediagram.SpectralSequenceJson;
 
 public class Main {
     
@@ -41,60 +48,132 @@ public class Main {
     
     public static void main(String[] args)
     {
-	if(args.length>0) {
-           JSONSpecification spec;
-           GradedModule<Sq> sqmod;
-           try {
-               spec = JSONSpecification.loadFile(args[0]);
-               Config.P = spec.prime;
-               Config.Q = 2 * (Config.P - 1);
-               Config.yscale = Config.Q;
-	       sqmod = new JSONModule(spec.generators,spec.relations);
-           } catch(ParseException | IOException e) {
-              quit(e);
-              return;
-           }
-           ResMath.calcInverses();
-           texOutputFilename = spec.tex_output;
-           jsonOutputFilename = spec.json_output;
-           pdfOutputFilename = spec.pdf_output;
-           if(spec.xscale>0){
-               Config.xscale = spec.xscale;
-           }
-           if(spec.yscale>0){
-               Config.yscale = spec.yscale;
-           }
-           if(spec.scale>0){
-               Config.xscale *= spec.scale;
-               Config.yscale *= spec.scale;
-           }
-           
-           
-           if(spec.max_stem > 0){
-               Config.T_CAP = spec.max_stem;
-           }
-           Matcher match;
-           if(spec.algebra == null || "steenrod".equals(spec.algebra.toLowerCase())){
-               	startBruner(new SteenrodAlgebra(), sqmod);
-           } else if("P".equals(spec.algebra)) {
-                startBruner(new EvenSteenrodAlgebra(), sqmod);
-           } else if((match = A_N_ALGNAME_PAT.matcher(spec.algebra)).find()) {
-                int n;
-                try {
-                    n = Integer.parseInt(match.group(1));
-//                    System.out.println("n: " + n);
-                    startBruner(new AnAlgebra(n),new AnModuleWrapper(sqmod));
-                } catch (NumberFormatException e) {
-                    if("".equals(match.group(1))){
-                        startBruner(new SteenrodAlgebra(), sqmod);
-                    } else {
-                        quit(new ParseException("Algebra " + spec.algebra + " not recognized." ,0));
-                    }
+        JsonParser parser = new JsonParser();
+        try {
+            JsonObject json = parser.parse(new FileReader(new File("tex/X3-out-test.json"))).getAsJsonObject();
+            if(json.get("type") != null){
+                switch(json.get("type").getAsString()){
+                    case "display":
+                        displaySpectralSequence(json);
+                        break;
+                    default:
+                        break;
                 }
-           }
+            } else {
+                resolveJsonModule(json);
+            }
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    static void displaySpectralSequence(JsonElement json){
+        SpectralSequenceDisplay.constructFrontend(SpectralSequenceJson.ImportSseq(json)).start();
+    }
+    
+    static void resolveJsonModule(JsonElement json){
+        JsonSpecification spec;
+        GradedModule<Sq> sqmod;
+        try {
+            spec = JsonSpecification.loadJson(json);
+            Config.P = spec.prime;
+            System.out.println(Config.P);
+            Config.Q = 2 * (Config.P - 1);
+            Config.yscale = Config.Q;
+            sqmod = new JSONModule(spec.generators,spec.relations);
+        } catch(ParseException e) {
+           quit(e);
+           return;
+        }
+        ResMath.calcInverses();
+        texOutputFilename = spec.tex_output;
+        jsonOutputFilename = spec.json_output;
+        pdfOutputFilename = spec.pdf_output;
+        if(spec.xscale>0){
+            Config.xscale = spec.xscale;
+        }
+        if(spec.yscale>0){
+            Config.yscale = spec.yscale;
+        }
+        if(spec.scale>0){
+            Config.xscale *= spec.scale;
+            Config.yscale *= spec.scale;
+        }
 
 
-	} else {
+        if(spec.max_stem > 0){
+            Config.T_CAP = spec.max_stem;
+        }
+        Matcher match;
+        if(spec.algebra == null || "steenrod".equals(spec.algebra.toLowerCase())){
+             startBruner(new SteenrodAlgebra(), sqmod);
+        } else if("P".equals(spec.algebra)) {
+             startBruner(new EvenSteenrodAlgebra(), sqmod);
+        } else if((match = A_N_ALGNAME_PAT.matcher(spec.algebra)).find()) {
+             int n;
+             try {
+                 n = Integer.parseInt(match.group(1));
+                 startBruner(new AnAlgebra(n),new AnModuleWrapper(sqmod));
+             } catch (NumberFormatException e) {
+                 if("".equals(match.group(1))){
+                     startBruner(new SteenrodAlgebra(), sqmod);
+                 } else {
+                     quit(new ParseException("Algebra " + spec.algebra + " not recognized." ,0));
+                 }
+             }
+        }
+    }
+
+    static <T extends GradedElement<T>> void startBruner(GradedAlgebra<T> alg, GradedModule<T> mod)
+    {
+        /* backend */
+        BrunerBackend<T> back = new BrunerBackend<>(alg,mod);
+        SpectralSequenceDisplay display =  SpectralSequenceDisplay.constructFrontend(back).setScale(Config.xscale,Config.yscale).start();
+        if(texOutputFilename!=null){
+            back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(back).writeToFile("tex/"+texOutputFilename);});
+        }
+        
+        if(jsonOutputFilename!=null){
+            back.registerDoneCallback(() -> {
+                try {
+                    SpectralSequenceJson.ExportSseq(back).writeToFile("tex/"+jsonOutputFilename);
+                } catch (IOException ex) {
+                    System.out.println("Failed to write to tex/"+jsonOutputFilename);
+//                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            });
+        }
+                
+        if(pdfOutputFilename!=null){
+            back.registerDoneCallback(() -> { 
+                
+                display.writeToFile("tex/"+pdfOutputFilename);
+            });
+        }        
+        
+        /* off we go */
+        back.start();
+    }
+
+//    static void startCE()
+//    {
+//        CotorLiftingBackend back = new CotorLiftingBackend();
+//        Decorated<Generator<Sq>, ? extends MultigradedVectorSpace<Generator<Sq>>> dec = back.getDecorated();
+//
+//        /* frontend */
+//        String s = sd.front.getSelection().getActionCommand();
+//        if(s == SettingsDialog.FRONT3D)
+//            ResDisplay3D.constructFrontend(dec);
+//        else
+//            ResDisplay.constructFrontend(dec);
+//
+//        /* off we go */
+//        back.start();
+//    }
+
+    
+    static void dialogInput(){
+        {
             String s;
             sd = new SettingsDialog();
             sd.setVisible(true); /* blocks until dialog has completed */
@@ -190,48 +269,6 @@ public class Main {
                 startBruner(analg, anmod);
             }
 	}
-
     }
-
-    static <T extends GradedElement<T>> void startBruner(GradedAlgebra<T> alg, GradedModule<T> mod)
-    {
-        /* backend */
-        BrunerBackend<T> back = new BrunerBackend<>(alg,mod);
-        SpectralSequenceDisplay display =  SpectralSequenceDisplay.constructFrontend(back).setScale(Config.xscale,Config.yscale).start();
-        if(texOutputFilename!=null){
-            back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(back).writeToFile("tex/"+texOutputFilename);});
-        }
-        
-        if(jsonOutputFilename!=null){
-            back.registerDoneCallback(() -> {new ExportSpectralSequenceToJSON(back).writeToFile("tex/"+jsonOutputFilename);});
-        }
-                
-        if(pdfOutputFilename!=null){
-            back.registerDoneCallback(() -> { 
-                
-                display.writeToFile("tex/"+pdfOutputFilename);
-            });
-        }        
-        
-        /* off we go */
-        back.start();
-    }
-
-//    static void startCE()
-//    {
-//        CotorLiftingBackend back = new CotorLiftingBackend();
-//        Decorated<Generator<Sq>, ? extends MultigradedVectorSpace<Generator<Sq>>> dec = back.getDecorated();
-//
-//        /* frontend */
-//        String s = sd.front.getSelection().getActionCommand();
-//        if(s == SettingsDialog.FRONT3D)
-//            ResDisplay3D.constructFrontend(dec);
-//        else
-//            ResDisplay.constructFrontend(dec);
-//
-//        /* off we go */
-//        back.start();
-//    }
-
 }
 

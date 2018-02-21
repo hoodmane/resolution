@@ -205,7 +205,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     }
      
     private void drawStructline(Graphics2D g, Structline sl){
-        g.setColor(sl.getColor());
+        g.setColor(Color.BLACK);
         SseqClass source = sl.getSource();
         SseqClass target = sl.getTarget();
         if(pos.get(source)!=null && pos.get(target)!=null){//if(isVisible(u) && isVisible(d.dest)){
@@ -243,7 +243,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         g.fill(new  Rectangle2D.Double(getScreenX(x), getScreenY(y) - block_height, block_width, block_height));
     }
     
-    private TreeMap<SseqClass,double[]> pos;
+    private Map<SseqClass,double[]> pos;
     
     private void drawClass(Graphics2D g, SseqClass c){
         g.setColor(Color.black);
@@ -301,8 +301,8 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         }                
         
         /* assign classes a location; at this point we definitively decide what's visible */
-        Set<SseqClass> frameVisibles = new TreeSet<>();
-        pos = new TreeMap<>();
+        Set<SseqClass> frameVisibles = new HashSet<>();
+        pos = new HashMap<>();
         for(int x = min_x_visible; x <= max_x_visible; x++) {
             for(int y = min_y_visible; y <= max_y_visible; y++) {
                 int cellState = sseq.getState(multideg(x,y));

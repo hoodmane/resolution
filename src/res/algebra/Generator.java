@@ -2,6 +2,7 @@ package res.algebra;
 import java.awt.Shape;
 import java.awt.geom.Ellipse2D;
 import java.util.Collection;
+import java.util.List;
 import res.spectralsequencediagram.*;
 
 
@@ -13,6 +14,22 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
     public int idx;
     public String extraInfo = "";
     private Collection<Structline> structlines;
+    private StructlineProducer structlineGetter;
+    
+    public static interface StructlineProducer {
+        Collection<Structline> get();
+    }
+    
+    /**
+     * This deals with the annoying fact that the decorator is needed to figure out what the structlines sourced at a 
+     * particular class are, but the Generator doesn't have the decorator.
+     * @param structlineGetter A method that returns the structlines of the class.
+     * @return this -- chainable
+     */
+    public Generator<T> setStructlineGetter(StructlineProducer structlineGetter){
+        this.structlineGetter = structlineGetter;
+        return this;
+    }
     
     public Generator(int[] deg, int idx)
     {
@@ -74,11 +91,12 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
 
     @Override
     public Collection<Structline> getStructlines() {
-        return structlines;
+        return structlineGetter.get();
     }
 
     @Override
     public Collection<Structline> getDifferentials() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
+
 }

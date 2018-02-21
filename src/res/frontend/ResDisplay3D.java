@@ -114,17 +114,17 @@ public class ResDisplay3D<U extends MultigradedElement<U>> extends JPanel implem
 
         vertexmap.keySet().forEach((u) -> {
             int[] tp1 = vertexmap.get(u).tp;
-
-            /* based line decorations */
-            dec.getStructlineDecorations(u).forEach((d) -> {
-                Vertex vo = vertexmap.get(d.dest);
-                if (!(vo == null)) {
-                    int[] tp2 = vo.tp;
-                    
-                    g.setColor(d.color);
-                    g.drawLine(tp1[0], tp1[1], tp2[0], tp2[1]);
-                }
-            });
+//
+//            /* based line decorations */
+//            dec.getStructlineDecorations(u).forEach((d) -> {
+//                Vertex vo = vertexmap.get(d.dest);
+//                if (!(vo == null)) {
+//                    int[] tp2 = vo.tp;
+//                    
+//                    g.setColor(d.color);
+//                    g.drawLine(tp1[0], tp1[1], tp2[0], tp2[1]);
+//                }
+//            });
 
             /* unbased line decorations */
             dec.getUnbasedStructlineDecorations(u).forEach((d) -> {

@@ -1,6 +1,5 @@
 package res.algebra;
 
-import res.*;
 import java.util.*;
 
 public abstract class GradedComodule<T extends GradedElement<T>>

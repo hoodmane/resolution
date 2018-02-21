@@ -9,6 +9,7 @@ import com.google.gson.*;
 import java.awt.Color;
 import java.awt.Shape;
 import java.lang.reflect.Type;
+import res.spectralsequencediagram.SseqClassSerializer.DeserializedSseqClass;
 
 /**
  *
@@ -25,7 +26,7 @@ public class StructlineSerializer implements JsonSerializer<Structline> {
 //        ts.color = t.getColor();
         return jsc.serialize(ts,StructlineToSerialize.class);
     }
-    
+
     private class StructlineToSerialize {
         String sourceName;
         String targetName;
@@ -33,4 +34,35 @@ public class StructlineSerializer implements JsonSerializer<Structline> {
         Color color;
     }            
     
+    class DeserializedStructline implements Structline {
+        // populated by GSON
+        String sourceName;
+        String targetName;
+        Shape shape;
+        Color color;
+        
+        // internal
+        DeserializedSseqClass source, target;
+        
+        @Override
+        public SseqClass getSource() {
+            return source;
+        }
+
+        @Override
+        public SseqClass getTarget() {
+            return target;
+        }
+
+        @Override
+        public Shape getShape() {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public Color getColor() {
+            return color;
+        }
+        
+    }
 }

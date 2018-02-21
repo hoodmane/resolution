@@ -22,14 +22,13 @@ public class BrunerBackend<T extends GradedElement<T>>
     private final GradedAlgebra<T> alg;
     private final GradedModule<T> module;
 
-    private Set<SseqClass> gens = new HashSet<SseqClass>();
+    private Set<SseqClass> gens = new HashSet<>();
     private Map<int[],Set<Generator<T>>> gensByMultidegree = new TreeMap<>(Multidegrees.multidegComparator);
     private Map<int[],BrunerCellData<T>> output = new TreeMap<>(Multidegrees.multidegComparator);
     
     private int computedStems = 0;
     private int totalGens = 0;
     
-    private Callback doneCallback;
     private CompoundDecorated<Generator<T>, MultigradedAlgebra<Generator<T>>> dec;
     
     public boolean isDone(){
@@ -376,6 +375,7 @@ public class BrunerBackend<T extends GradedElement<T>>
             }
 
             Generator<T> gen = new Generator<>(deg, gens.size());
+            gen.setStructlineGetter(() -> ConvertCollection(dec.getStructlineDecorations(gen)));
             gen.img = k;
 
             /* add this into the existing image */
