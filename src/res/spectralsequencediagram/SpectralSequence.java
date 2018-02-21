@@ -13,6 +13,12 @@ import res.algebra.PingListener;
  * @author Hood
  */
 public interface SpectralSequence {
+    double getXScale();
+    double getYScale();
+
+    void setXScale(double xscale);
+    void setYScale(double yscale);
+    
     public int num_gradings();
     
     public int totalGens();

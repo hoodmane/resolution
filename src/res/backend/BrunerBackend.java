@@ -472,6 +472,28 @@ public class BrunerBackend<T extends GradedElement<T>>
     public int getState(int x, int y) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
+    
+    double xscale,yscale;
+
+    @Override
+    public double getXScale() {
+        return xscale;
+    }
+
+    @Override
+    public double getYScale() {
+        return yscale;
+    }
+
+    @Override
+    public void setXScale(double xscale) {
+        this.xscale = xscale;
+    }
+
+    @Override
+    public void setYScale(double yscale) {
+        this.yscale = yscale;
+    }
 
 
 }

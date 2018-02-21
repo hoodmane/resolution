@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import res.Config;
 import static res.algebra.MultigradedVectorSpace.*;
 import res.algebra.PingListener;
 import res.spectralsequencediagram.SseqClassSerializer.DeserializedSseqClass;
@@ -31,6 +32,9 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
         ts.num_gradings = t.num_gradings();
         ts.classes = t.getClasses();
         ts.structlines = t.getStructlines();
+        ts.xscale = t.getXScale();
+        ts.yscale = t.getYScale();
+        ts.T_max = Config.T_CAP;
         return jsc.serialize(ts,SseqToSerialize.class);
     }
 
@@ -44,15 +48,19 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
     private class SseqToSerialize {
         String type = "display";
         int num_gradings;
+        int T_max;
         Collection<SseqClass> classes;
         Collection<Structline> structlines;
+        double xscale, yscale;
     }        
     
     class DeserializedSseq implements SpectralSequence {
         // Json fields:
         int num_gradings;
+        int T_max;
         Collection<DeserializedSseqClass> classes;
         Collection<DeserializedStructline> structlines;
+        double xscale, yscale;
         
         // Internal fields:
         int total_gens;
@@ -60,6 +68,7 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
         Map<String,DeserializedSseqClass> classesByName;
         
         private void initialize(){
+            System.out.println(T_max);
             classesByDegree = classes.stream().collect(Collectors.groupingBy((c) -> new IntPair(c.getDegree())));
             classesByName = classes.stream().collect(Collectors.toMap((c) -> c.getName(), (c) -> c));
             classes.forEach(c -> c.structlines = new HashSet());
@@ -71,6 +80,17 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
             });
 //            System.out.println(classesByDegree.get(new int[] {0,0}).iterator().next().getName());
         }
+        
+        @Override
+        public double getXScale(){
+            return xscale != 0 ? xscale : 1;
+        }
+
+        @Override
+        public double getYScale(){
+            return yscale != 0 ? yscale : 1;
+        }
+
         
         @Override
         public int num_gradings() {
@@ -109,12 +129,18 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
 
         @Override
         public int getState(int x, int y) {
-            return STATE_DONE;
+            if(T_max == 0){
+                return STATE_DONE;  
+            } else if(y<=T_max){
+                return STATE_DONE;
+            } else {
+                return STATE_NOT_COMPUTED;
+            }
         }
 
         @Override
         public int getState(int[] p) {
-            return STATE_DONE;
+            return getState(p[0],p[1]);
         }
 
         /**
@@ -129,6 +155,16 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
         @Override
         public void removeListener(PingListener l) {
             
+        }
+
+        @Override
+        public void setXScale(double xscale) {
+            this.xscale = xscale;
+        }
+
+        @Override
+        public void setYScale(double yscale) {
+            this.yscale = yscale;
         }
         
     }

@@ -22,9 +22,9 @@ public class SseqClassSerializer implements JsonSerializer<SseqClass>{
     public JsonElement serialize(SseqClass t, Type type, JsonSerializationContext jsc) {
         SseqClassToSerialize cts = new SseqClassToSerialize();
         cts.name = t.getName();
-        int[] naiveDegree = t.getDegree();
-        cts.degree = t.getDegree();// = new int[] {naiveDegree[1]-naiveDegree[0],naiveDegree[0]};
-        System.out.print(cts.degree[0] + " ");
+        cts.degree = t.getDegree();
+        cts.extraInfo = t.extraInfo();
+//        System.out.print(cts.degree[0] + " ");
         return jsc.serialize(cts,SseqClassToSerialize.class);
     }
 

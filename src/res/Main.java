@@ -50,7 +50,7 @@ public class Main {
     {
         JsonParser parser = new JsonParser();
         try {
-            JsonObject json = parser.parse(new FileReader(new File("tex/X3-out-test.json"))).getAsJsonObject();
+            JsonObject json = parser.parse(new FileReader(new File(args[0]))).getAsJsonObject();
             if(json.get("type") != null){
                 switch(json.get("type").getAsString()){
                     case "display":

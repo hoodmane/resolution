@@ -23,7 +23,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     final static int DEFAULT_MINFILT = 0;
     final static int DEFAULT_MAXFILT = 100;
     
-    final static int ZOOMINTERVAL = 50;
+    final static int ZOOMINTERVAL = 20;
     final static double ZOOM_BASE = 1.1;
     final static int DEFAULT_WINDOW_WIDTH = 1600;
     final static int DEFAULT_WINDOW_HEIGHT = 800;
@@ -87,6 +87,8 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         d.addMouseListener(d);
         d.addMouseMotionListener(d);
         d.addMouseWheelListener(d);
+        System.out.print("");
+        d.setScale(sseq.getXScale(), sseq.getYScale());
         return d;
     }
     
@@ -126,6 +128,9 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     }
     
     public SpectralSequenceDisplay<U> setScale(double xscale,double yscale){
+        sseq.setXScale(xscale);
+        sseq.setYScale(yscale);
+        
         this.yscale = yscale/xscale;
         this.zoom = Math.log(xscale)/Math.log(ZOOM_BASE);
         return this;
@@ -284,7 +289,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         int xtickstep = 5;
         int ytickstep = 5;
         for(double i = -zoom; i > 0; i -= ZOOMINTERVAL) xtickstep *= 2;
-        for(double i = (-zoom - yscale_log); i > 0; i -= ZOOMINTERVAL*yscale) ytickstep *= 2;
+        for(double i = (-zoom - yscale_log); i > 0; i -= ZOOMINTERVAL ) ytickstep *= 2;
         for(int x = 0; x <= max_visible; x++) {
             g.setColor(Color.lightGray);
             drawLine(g,getScreenX(x), getScreenY(0), getScreenX(x), 0);
@@ -428,7 +433,6 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
 
     @Override public void mouseClicked(MouseEvent evt)
     {
-        System.out.println(evt.getX() + ", " + evt.getY());
         int x = (int) getChartX(evt.getX());
         int y = (int) getChartY(evt.getY());
         if(x >= 0 && y >= 0) {
