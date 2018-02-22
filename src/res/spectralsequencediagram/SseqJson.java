@@ -16,10 +16,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
-public class SpectralSequenceJson {
+public class SseqJson {
     private String json;
     
-    static final Gson GSON = new GsonBuilder()
+    public static final Gson GSON = new GsonBuilder()
         .registerTypeHierarchyAdapter(SpectralSequence.class, new SpectralSequenceSerializer())
         .registerTypeHierarchyAdapter(SseqClass.class, new SseqClassSerializer())
         .registerTypeHierarchyAdapter(Structline.class, new StructlineSerializer())
@@ -30,8 +30,8 @@ public class SpectralSequenceJson {
      * @param sseq The spectral sequence to serialize
      * @return SpectralSequenceJson object containing the Json representation of the input spectral sequence
      */
-    public static SpectralSequenceJson ExportSseq(SpectralSequence sseq){
-        SpectralSequenceJson s = new SpectralSequenceJson();
+    public static SseqJson ExportSseq(SpectralSequence sseq){
+        SseqJson s = new SseqJson();
         s.json = GSON.toJson(sseq);
         return s;
     }

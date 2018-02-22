@@ -6,15 +6,17 @@ import java.util.*;
 /* The Steenrod algebra, terms of excess at most K. */
 public class ExcessModule extends GradedModule<Sq>
 {
+    private final int p;
     private final int K;
 
     GradedAlgebra<Sq> alg;
     Generator<Sq> g;
 
-    public ExcessModule(int k, GradedAlgebra<Sq> alg)
+    public ExcessModule(int p,int k, GradedAlgebra<Sq> alg)
     {
+        this.p = p;
         /* XXX the extra-grading behavior is probably very broken */ 
-        g = new Generator<>(new int[] {-1,0,k}, 0);
+        g = new Generator<>(p,new int[] {-1,0,k}, 0);
         this.alg = alg;
         this.K = k;
     }
@@ -33,11 +35,16 @@ public class ExcessModule extends GradedModule<Sq>
     @Override public DModSet<Sq> act(Dot<Sq> a, Sq b)
     {
         ModSet<Sq> prelim = alg.times(b, a.sq); /* left module */
-        DModSet<Sq> ret = new DModSet<>();
+        DModSet<Sq> ret = new DModSet<>(p);
         for(Map.Entry<Sq,Integer> ent : prelim.entrySet()) 
             if(ent.getKey().excess() <= K)
                 ret.add(new Dot<>(g, ent.getKey()), ent.getValue());
         return ret;
+    }
+
+    @Override
+    public int getP() {
+        return p;
     }
 
 }

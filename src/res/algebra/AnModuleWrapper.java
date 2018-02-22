@@ -4,14 +4,16 @@ import java.util.*;
 
 public class AnModuleWrapper extends GradedModule<AnElement>
 {
+    private final int p;
     GradedModule<Sq> base;
-
+    
     Map<Dot<Sq>,Dot<AnElement>> dmap = new TreeMap<>();
     Map<Dot<AnElement>,Dot<Sq>> rmap = new TreeMap<>();
 
-    public AnModuleWrapper(GradedModule<Sq> _base)
+    public AnModuleWrapper(GradedModule<Sq> base)
     {
-        base = _base;
+        this.base = base;
+        this.p = base.getP();
     }
 
     @Override public Iterable<Dot<AnElement>> basis(int deg)
@@ -25,7 +27,7 @@ public class AnModuleWrapper extends GradedModule<AnElement>
     @Override public DModSet<AnElement> act(Dot<AnElement> o, AnElement elt)
     {
         Dot<Sq> under = rmap.get(o);
-        DModSet<AnElement> ret = new DModSet<>();
+        DModSet<AnElement> ret = new DModSet<>(p);
 
         elt.modset.entrySet().forEach((sqe) -> {
             DModSet<Sq> prod = base.act(under, sqe.getKey());
@@ -43,11 +45,16 @@ public class AnModuleWrapper extends GradedModule<AnElement>
         Dot<AnElement> ret = dmap.get(in);
         if(ret != null) return ret;
 
-        Generator<AnElement> gen = new Generator<>(in.deg, gencount++);
-        ret = new Dot<>(gen, AnElement.UNIT);
+        Generator<AnElement> gen = new Generator<>(p,in.deg, gencount++);
+        ret = new Dot<>(gen, AnElement.UNIT(p));
         dmap.put(in,ret);
         rmap.put(ret,in);
         return ret;
+    }
+
+    @Override
+    public int getP() {
+        return p;
     }
 }
 

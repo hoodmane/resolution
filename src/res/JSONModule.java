@@ -19,6 +19,9 @@ public class JSONModule extends GradedModule<Sq> {
       actions: a generator ==> a map from integers (presumably representing some P^n) ==> a DModSet which represents an Fp linear combination of 
                elements of the module.
    */
+    private final int p;
+    private final AlgebraFactory factory;
+    private final DModSet<Sq> zero;
     
     private Map<Integer,ArrayList<Dot<Sq>>> gens = new TreeMap<>();
     private Map<Dot<Sq>,Map<Integer,DModSet<Sq>>> actions = new TreeMap<>();
@@ -57,7 +60,10 @@ public class JSONModule extends GradedModule<Sq> {
      * @param relations  A list of relations. Each relation is a string of the form "P^n(
      * @throws ParseException 
      */
-    public JSONModule(Map<String,Integer> generators, List<String> relations) throws ParseException{
+    public JSONModule(int p,Map<String,Integer> generators, List<String> relations) throws ParseException{
+        this.zero = new DModSet<>(p);
+        this.p = p;
+        factory = AlgebraFactory.get(p);
         // Default to the sphere.
         if(generators==null){
             generators = new TreeMap<String,Integer>();
@@ -80,8 +86,8 @@ public class JSONModule extends GradedModule<Sq> {
             }  
             int deg = entry.getValue();
             ArrayList<Dot<Sq>> gensEntry = getAndInitializeIfNeeded(gens,deg);
-            Generator<Sq> g = new Generator<>(new int[] {-1,deg,0},gensEntry.size());
-            Dot<Sq> d = new Dot<>(g, Sq.UNIT);
+            Generator<Sq> g = new Generator<>(p,new int[] {-1,deg,0},gensEntry.size());
+            Dot<Sq> d = new Dot<>(g, factory.UNIT);
             variableMap.put(varName,d);
             gensEntry.add(d);
             actions.put(d,new TreeMap<>());
@@ -154,7 +160,7 @@ public class JSONModule extends GradedModule<Sq> {
                  throw new ParseException("Unknown variable \"" + inputVariableName + "\" in " + relationInfo,1);
              Dot<Sq> inputVariable = variableMap.get(LHSmatcher.group(3));
              int inputVariableDegree = inputVariable.deg[1];
-             DModSet<Sq> outputSet = new DModSet<>();
+             DModSet<Sq> outputSet = new DModSet<>(p);
              // Convert + into +- so that - is part of coefficient. Split on plus.
              for(String term : RHS.replace("-","+-").split("\\+")){
                  term = term.trim();
@@ -207,11 +213,10 @@ public class JSONModule extends GradedModule<Sq> {
         else return alist;
     }
 
-    DModSet<Sq> zero = new DModSet<>();
     @Override public DModSet<Sq> act(Dot<Sq> o, Sq sq)
     {
         if(sq.q.length == 0)
-            return new DModSet<>(o);
+            return new DModSet<>(p,o);
         else if(sq.q.length == 1) {
 
             Map<Integer,DModSet<Sq>> map = actions.get(o);
@@ -226,10 +231,15 @@ public class JSONModule extends GradedModule<Sq> {
         } else {
             int[] sqcopy = new int[sq.q.length-1];
             System.arraycopy(sq.q, 0, sqcopy, 0, sq.q.length-1);
-            Sq next = new Sq(sqcopy);
-            Sq curr = new Sq(sq.q[sq.q.length-1]);
+            Sq next = factory.Sq(sqcopy);
+            Sq curr = factory.Sq(sq.q[sq.q.length-1]);
             return act(o, curr).times(next,this);
         }
+    }
+
+    @Override
+    public int getP() {
+        return p;
     }
 
 }

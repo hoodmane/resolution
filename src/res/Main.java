@@ -19,7 +19,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import res.spectralsequencediagram.SpectralSequenceJson;
+import res.spectralsequencediagram.DisplaySettings;
+import res.spectralsequencediagram.SpectralSequence;
+import res.spectralsequencediagram.SseqJson;
 
 public class Main {
     
@@ -68,7 +70,10 @@ public class Main {
     }
     
     static void displaySpectralSequence(JsonElement json){
-        SpectralSequenceDisplay.constructFrontend(SpectralSequenceJson.ImportSseq(json)).start();
+        SpectralSequenceDisplay.constructFrontend(
+            SseqJson.GSON.fromJson(json,SpectralSequence.class),
+            SseqJson.GSON.fromJson(json, DisplaySettings.class)
+        ).start();
     }
     
     static void resolveJsonModule(JsonElement json){
@@ -80,12 +85,11 @@ public class Main {
             System.out.println(Config.P);
             Config.Q = 2 * (Config.P - 1);
             Config.yscale = Config.Q;
-            sqmod = new JSONModule(spec.generators,spec.relations);
+            sqmod = new JSONModule(Config.P,spec.generators,spec.relations);
         } catch(ParseException e) {
            quit(e);
            return;
         }
-        ResMath.calcInverses();
         texOutputFilename = spec.tex_output;
         jsonOutputFilename = spec.json_output;
         pdfOutputFilename = spec.pdf_output;
@@ -106,17 +110,17 @@ public class Main {
         }
         Matcher match;
         if(spec.algebra == null || "steenrod".equals(spec.algebra.toLowerCase())){
-             startBruner(new SteenrodAlgebra(), sqmod);
+             startBruner(new SteenrodAlgebra(Config.P), sqmod,json);
         } else if("P".equals(spec.algebra)) {
-             startBruner(new EvenSteenrodAlgebra(), sqmod);
+             startBruner(new EvenSteenrodAlgebra(Config.P), sqmod,json);
         } else if((match = A_N_ALGNAME_PAT.matcher(spec.algebra)).find()) {
              int n;
              try {
                  n = Integer.parseInt(match.group(1));
-                 startBruner(new AnAlgebra(n),new AnModuleWrapper(sqmod));
+                 startBruner(new AnAlgebra(Config.P,n),new AnModuleWrapper(sqmod),json);
              } catch (NumberFormatException e) {
                  if("".equals(match.group(1))){
-                     startBruner(new SteenrodAlgebra(), sqmod);
+                     startBruner(new SteenrodAlgebra(Config.P), sqmod, json);
                  } else {
                      quit(new ParseException("Algebra " + spec.algebra + " not recognized." ,0));
                  }
@@ -124,11 +128,14 @@ public class Main {
         }
     }
 
-    static <T extends GradedElement<T>> void startBruner(GradedAlgebra<T> alg, GradedModule<T> mod)
+    static <T extends GradedElement<T>> void startBruner(GradedAlgebra<T> alg, GradedModule<T> mod,JsonElement json)
     {
         /* backend */
         BrunerBackend<T> back = new BrunerBackend<>(alg,mod);
-        SpectralSequenceDisplay display =  SpectralSequenceDisplay.constructFrontend(back).setScale(Config.xscale,Config.yscale).start();
+        SpectralSequenceDisplay display = 
+            SpectralSequenceDisplay.constructFrontend(
+                back,SseqJson.GSON.fromJson(json,DisplaySettings.class)
+            ).start();
         if(texOutputFilename!=null){
             back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(back).writeToFile("tex/"+texOutputFilename);});
         }
@@ -136,7 +143,7 @@ public class Main {
         if(jsonOutputFilename!=null){
             back.registerDoneCallback(() -> {
                 try {
-                    SpectralSequenceJson.ExportSseq(back).writeToFile("tex/"+jsonOutputFilename);
+                    SseqJson.ExportSseq(back).writeToFile("tex/"+jsonOutputFilename);
                 } catch (IOException ex) {
                     System.out.println("Failed to write to tex/"+jsonOutputFilename);
 //                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
@@ -185,7 +192,6 @@ public class Main {
             Config.P = (Integer) sd.prime.getSelectedItem();
             Config.Q = 2 * (Config.P - 1);
             Config.yscale = Config.Q;
-            ResMath.calcInverses();
             Config.T_CAP = (Integer) sd.maxt.getValue();
             Config.THREADS = (Integer) sd.threads.getValue();
 
@@ -196,78 +202,78 @@ public class Main {
             }
 
             /* module */
-            GradedAlgebra<Sq> steen = null;
-            GradedModule<Sq> sqmod;
-            s = (String) sd.modcombo.getSelectedItem();
-            if( null == s)
-                sqmod = new Sphere<>(Sq.UNIT);
-            else switch (s) {
-                case SettingsDialog.MODBRUNER:
-                    sqmod = new BrunerNotationModule();
-                    break;
-                case SettingsDialog.MODCOF2:
-                    sqmod = new CofibHopf(0);
-                    break;
-                case SettingsDialog.MODCOFETA:
-                    sqmod = new CofibHopf(1);
-                    break;
-                case SettingsDialog.MODCOFNU:
-                    sqmod = new CofibHopf(2);
-                    break;
-                case SettingsDialog.MODCOFSIGMA:
-                    sqmod = new CofibHopf(3);
-                    break;
-                case SettingsDialog.MODA1:
-                    sqmod = new A1();
-                    break;
-                case SettingsDialog.MODEXCESS:
-                    int exct = -1;
-                    while(exct < 0) {
-                        String excstr = JOptionPane.showInputDialog(null, "Excess less than or equal to what T?");
-                        try {
-                            exct = Integer.parseInt(excstr);
-                        } catch(NumberFormatException e) {}
-                    }       
-                    steen = new SteenrodAlgebra();
-                    sqmod = new ExcessModule(exct,steen);
-                    break;
-                default:
-                    sqmod = new Sphere<>(Sq.UNIT);
-                    break;
-            }
-
-
-            /* algebra */
-            s = (String) sd.algcombo.getSelectedItem();
-            Config.MICHAEL_MODE = (s == SettingsDialog.ALGODD);
-            Config.MOTIVIC_GRADING = (s == SettingsDialog.ALGMOT);
-            if(s == SettingsDialog.ALGSTEEN || s == SettingsDialog.ALGODD || s == SettingsDialog.ALGMOT) { // steenrod
-
-                if(steen == null)
-                    steen = new SteenrodAlgebra();
-
-                startBruner(steen, sqmod);
-
-            } else { // A(n)
-
-                int N = -1;
-                if(s == SettingsDialog.ALGA1) N = 1;
-                else if(s == SettingsDialog.ALGA2) N = 2;
-                else if(s == SettingsDialog.ALGAN) {
-                    while(N < 0) {
-                        String nstr = JOptionPane.showInputDialog(null, "Ext over A(n) for what n?");
-                        try {
-                            N = Integer.parseInt(nstr);
-                        } catch(NumberFormatException e) {}
-                        if(N > 20) N = -1; // huge inputs will break due to overflow
-                    }
-                }
-
-                AnAlgebra analg = new AnAlgebra(N);
-                GradedModule<AnElement> anmod = new AnModuleWrapper(sqmod);
-
-                startBruner(analg, anmod);
-            }
+//            GradedAlgebra<Sq> steen = null;
+//            GradedModule<Sq> sqmod;
+//            s = (String) sd.modcombo.getSelectedItem();
+////            if( null == s)
+////                sqmod = new Sphere<>(Sq.UNIT);
+////            else switch (s) {
+////                case SettingsDialog.MODBRUNER:
+////                    sqmod = new BrunerNotationModule();
+////                    break;
+////                case SettingsDialog.MODCOF2:
+////                    sqmod = new CofibHopf(0);
+////                    break;
+////                case SettingsDialog.MODCOFETA:
+////                    sqmod = new CofibHopf(1);
+////                    break;
+////                case SettingsDialog.MODCOFNU:
+////                    sqmod = new CofibHopf(2);
+////                    break;
+////                case SettingsDialog.MODCOFSIGMA:
+////                    sqmod = new CofibHopf(3);
+////                    break;
+////                case SettingsDialog.MODA1:
+////                    sqmod = new A1();
+////                    break;
+////                case SettingsDialog.MODEXCESS:
+////                    int exct = -1;
+////                    while(exct < 0) {
+////                        String excstr = JOptionPane.showInputDialog(null, "Excess less than or equal to what T?");
+////                        try {
+////                            exct = Integer.parseInt(excstr);
+////                        } catch(NumberFormatException e) {}
+////                    }       
+////                    steen = new SteenrodAlgebra();
+////                    sqmod = new ExcessModule(exct,steen);
+////                    break;
+////                default:
+////                    sqmod = new Sphere<>(Sq.UNIT);
+////                    break;
+//            }
+//
+//
+//            /* algebra */
+//            s = (String) sd.algcombo.getSelectedItem();
+//            Config.MICHAEL_MODE = (s == SettingsDialog.ALGODD);
+//            Config.MOTIVIC_GRADING = (s == SettingsDialog.ALGMOT);
+//            if(s == SettingsDialog.ALGSTEEN || s == SettingsDialog.ALGODD || s == SettingsDialog.ALGMOT) { // steenrod
+//
+//                if(steen == null)
+//                    steen = new SteenrodAlgebra(Config.P);
+//
+////                startBruner(steen, sqmod);
+//
+//            } else { // A(n)
+//
+//                int N = -1;
+//                if(s == SettingsDialog.ALGA1) N = 1;
+//                else if(s == SettingsDialog.ALGA2) N = 2;
+//                else if(s == SettingsDialog.ALGAN) {
+//                    while(N < 0) {
+//                        String nstr = JOptionPane.showInputDialog(null, "Ext over A(n) for what n?");
+//                        try {
+//                            N = Integer.parseInt(nstr);
+//                        } catch(NumberFormatException e) {}
+//                        if(N > 20) N = -1; // huge inputs will break due to overflow
+//                    }
+//                }
+//
+//                AnAlgebra analg = new AnAlgebra(N,Config.P);
+//                GradedModule<AnElement> anmod = new AnModuleWrapper(sqmod);
+//
+////                startBruner(analg, anmod);
+//            }
 	}
     }
 }

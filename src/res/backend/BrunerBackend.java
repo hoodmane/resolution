@@ -18,7 +18,9 @@ public class BrunerBackend<T extends GradedElement<T>>
     implements Backend<Generator<T>, MultigradedAlgebra<Generator<T>>>, SpectralSequence
 {
 
-
+    private final int p;
+    private final ResMath resmath;
+    private final AlgebraFactory factory;
     private final GradedAlgebra<T> alg;
     private final GradedModule<T> module;
 
@@ -52,6 +54,9 @@ public class BrunerBackend<T extends GradedElement<T>>
         this.alg = alg;
         this.module = m;
         dec = new CompoundDecorated<>(this);
+        this.p = m.getP();
+        resmath = ResMath.get(p);
+        factory = AlgebraFactory.get(p);
 
 //        Collection<DifferentialRule> diffrules = new ArrayList<DifferentialRule>();
 //        diffrules.add(new DifferentialRule(new int[] {2,1,1}, new int[] {1,1,0}, Color.green));
@@ -150,7 +155,7 @@ public class BrunerBackend<T extends GradedElement<T>>
         if(dgens == null)
             return null;
 
-        ModSet<Generator<T>> ret = new ModSet<>();
+        ModSet<Generator<T>> ret = factory.ModSet();
         dgens.forEach((g) -> {
             Integer i = g.img.get(op);
             if (!(i == null)) {
@@ -277,7 +282,7 @@ public class BrunerBackend<T extends GradedElement<T>>
 
             for(Generator<T> g : gens(s,gt)) {
                 for(T q : alg.basis(t-gt)) {
-                    DModSet<T> x = new DModSet<>(new Dot<>(g,q));
+                    DModSet<T> x = new DModSet<>(p,new Dot<>(g,q));
                     /* compute the image */
                     DModSet<T> dx;
                     if(s > 0) dx = g.img.times(q, alg);
@@ -309,8 +314,8 @@ public class BrunerBackend<T extends GradedElement<T>>
                         Integer coeff = high.getValue();
                         if(Config.DEBUG) System.out.println("highest term "+d);
                         if(Config.DEBUG) Main.die_if(list_x.containsKey(d), "key clash on "+d);
-                        list_x.put(d, x.dscaled(ResMath.inverse[coeff]));
-                        list_dx.put(d, dx.dscaled(ResMath.inverse[coeff]));
+                        list_x.put(d, x.dscaled(resmath.inverse[coeff]));
+                        list_dx.put(d, dx.dscaled(resmath.inverse[coeff]));
                     }
                 }
             }
@@ -349,7 +354,7 @@ public class BrunerBackend<T extends GradedElement<T>>
                 if(moddx == null)
                     break;
                 int ocoeff = moddx.get(d);
-                k.add(moddx, -coeff * ResMath.inverse[ocoeff]);
+                k.add(moddx, -coeff * resmath.inverse[ocoeff]);
             }
             if(Config.DEBUG) System.out.printf("reduces to %s\n", k);
 
@@ -374,7 +379,7 @@ public class BrunerBackend<T extends GradedElement<T>>
                 deg[g] = nov;
             }
 
-            Generator<T> gen = new Generator<>(deg, gens.size());
+            Generator<T> gen = new Generator<>(p,deg, gens.size());
             gen.setStructlineGetter(() -> ConvertCollection(dec.getStructlineDecorations(gen)));
             gen.img = k;
 
@@ -474,27 +479,6 @@ public class BrunerBackend<T extends GradedElement<T>>
     }
     
     double xscale,yscale;
-
-    @Override
-    public double getXScale() {
-        return xscale;
-    }
-
-    @Override
-    public double getYScale() {
-        return yscale;
-    }
-
-    @Override
-    public void setXScale(double xscale) {
-        this.xscale = xscale;
-    }
-
-    @Override
-    public void setYScale(double yscale) {
-        this.yscale = yscale;
-    }
-
 
 }
 

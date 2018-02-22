@@ -6,6 +6,10 @@ import java.util.*;
 /* The Even Steenrod algebra, as requested by Eva. */
 public class EvenSteenrodAlgebra extends SteenrodAlgebra
 {
+
+    public EvenSteenrodAlgebra(int p) {
+        super(p);
+    }
     /*
      * Returns all partitions of <n> into P-admissible sequences of largest entry at most <max>.
      * We commented out the part to deal with betas because we are the EvenSteenrodAlgebra.

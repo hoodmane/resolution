@@ -7,18 +7,29 @@ import java.util.*;
  * or for odd primes, B, P^1, P^p, etc. */
 public class AnAlgebra implements GradedAlgebra<AnElement>
 {
-    int N;
-    public AnAlgebra(int _N) {
-        N = _N;
-
+    final AlgebraFactory factory;
+    final ResMath resmath;
+    final int N;
+    final int p;
+    final int q;
+    private final AnElement UNIT;
+    
+    public AnAlgebra(int p,int N) {
+        this.N = N;
+        this.p = p;
+        this.q = 2*p-2;
+        this.factory = AlgebraFactory.get(p);
+        UNIT = new AnElement(p,new ModSet<>(p,factory.UNIT), 0);;
+        
+        this.resmath = ResMath.get(p);
         // precompute hopf elements
-        hopf.add(new AnElement(new ModSet<>(Sq.HOPF[0]),1));
-        int pow = Config.Q;
+        hopf.add(new AnElement(p,new ModSet<>(p,factory.HOPF[0]),1));
+        int pow = q;
         for(int i = 1; i <= N; i++) {
-            Sq sq = new Sq(pow);
-            AnElement elt = new AnElement(new ModSet<>(sq), pow);
+            Sq sq = new Sq(p,pow);
+            AnElement elt = new AnElement(p,new ModSet<>(p,sq), pow);
             hopf.add(elt);
-            pow *= Config.P;
+            pow *= p;
         }
     }
 
@@ -35,11 +46,11 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
 
         ret = new TreeMap<>();
         if(n == 0) {
-            ret.put(Sq.UNIT, AnElement.UNIT);
+            ret.put(factory.UNIT, AnElement.UNIT(p));
         } else {
             // add a new hopf element as appropriate
             for(AnElement elt : hopf) if(elt.deg == n) {
-                Sq sq = new Sq(new int[] {n});
+                Sq sq = new Sq(p,new int[] {n});
                 ret.put(sq, elt);
             }
 
@@ -51,7 +62,7 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
 
                     for(AnElement b : basis(n-d)) {
                         // multiply
-                        ModSet<Sq> prod = new ModSet<>();
+                        ModSet<Sq> prod = new ModSet<>(p);
                         for(Map.Entry<Sq,Integer> e1 : a.modset.entrySet()) {
                             for(Map.Entry<Sq,Integer> e2 : b.modset.entrySet()) {
                                 ModSet<Sq> sqprod = e1.getKey().times(e2.getKey());
@@ -63,7 +74,7 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
                         // reduce by Gaussian elimination
                         Sq highKey = null;
                         int highVal = -1;
-                        ModSet<AnElement> eltprod = new ModSet<>();
+                        ModSet<AnElement> eltprod = new ModSet<>(p);
                         while(! prod.isEmpty()) {
                             Map.Entry<Sq,Integer> high = prod.lastEntry();
                             highKey = high.getKey();
@@ -80,8 +91,8 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
 
                         // add to basis if appropriate
                         if(! prod.isEmpty()) {
-                            ModSet<Sq> scaled = prod.scaled(ResMath.inverse[highVal]);
-                            AnElement elt = new AnElement(scaled,n);
+                            ModSet<Sq> scaled = prod.scaled(resmath.inverse[highVal]);
+                            AnElement elt = new AnElement(p,scaled,n);
                             ret.put(highKey, elt);
                             eltprod.add(elt,highVal);
 //                            System.out.println("Obtained "+elt+" from "+a+" * "+b);
@@ -100,14 +111,14 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
 
     @Override public ModSet<AnElement> times(AnElement a, AnElement b)
     {
-        if(a == AnElement.UNIT) return new ModSet<>(b);
-        if(b == AnElement.UNIT) return new ModSet<>(a);
+        if(a == UNIT) return new ModSet<>(p,b);
+        if(b == UNIT) return new ModSet<>(p,a);
         return mult.get(a).get(b);
     }
 
     @Override public AnElement unit()
     {
-        return AnElement.UNIT;
+        return UNIT;
     }
 
     @Override public List<AnElement> distinguished() {

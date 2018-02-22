@@ -6,13 +6,18 @@ import java.util.*;
 /* The Steenrod algebra. */
 public class SteenrodAlgebra implements GradedAlgebra<Sq>
 {
-    public SteenrodAlgebra() {}
+    private final int p;
+    private final AlgebraFactory factory;
+    public SteenrodAlgebra(int p) {
+        this.p = p;
+        factory = AlgebraFactory.get(p);
+    }
 
     @Override public Iterable<Sq> basis(int n)
     {
         Collection<Sq> ret = new ArrayList<>();
         for(int[] q : part_p(n,n))
-            ret.add(new Sq(q));
+            ret.add(factory.Sq(q));
 
         return ret;
     }
@@ -24,15 +29,15 @@ public class SteenrodAlgebra implements GradedAlgebra<Sq>
 
     @Override public Sq unit()
     {
-        return Sq.UNIT;
+        return factory.UNIT;
     }
 
     @Override public List<Sq> distinguished()
     {
         ArrayList<Sq> ret = new ArrayList<>();
-        ret.add(Sq.HOPF[0]);
-        ret.add(Sq.HOPF[1]);
-        ret.add(Sq.HOPF[2]);
+        ret.add(factory.HOPF[0]);
+        ret.add(factory.HOPF[1]);
+        ret.add(factory.HOPF[2]);
         return ret;
     }
 

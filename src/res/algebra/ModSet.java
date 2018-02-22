@@ -6,20 +6,26 @@ import java.util.*;
 /* A formal F_p-linear combination of things of type T. */
 public class ModSet<T> extends TreeMap<T,Integer>
 {
-    public ModSet() {}
-    public ModSet(T t) {
+    final ResMath resmath; 
+    final int p;
+
+    public ModSet(int p) {
+        this.p = p;
+        resmath = ResMath.get(p);
+    }
+    public ModSet(int p, T t) {
+        this.p = p;
+        resmath = ResMath.get(p);
         add(t,1);
     }
-    public ModSet(Comparator<? super T> comp) {
-        super(comp);
-    }
+
 
     public void add(T d, int mult)
     {
         Integer got = get(d);
         int c = (got == null) ? 0 : got;
 
-        c = ResMath.dmod(c + mult);
+        c = resmath.dmod(c + mult);
 
         if(c == 0) 
             remove(d);
@@ -29,7 +35,7 @@ public class ModSet<T> extends TreeMap<T,Integer>
 
     public void add(ModSet<T> d, int mult)
     {
-        if(ResMath.dmod(mult) == 0) return;
+        if(resmath.dmod(mult) == 0) return;
         d.entrySet().forEach((e) -> {
             add(e.getKey(), e.getValue() * mult);
         });
@@ -37,7 +43,7 @@ public class ModSet<T> extends TreeMap<T,Integer>
 
     public ModSet<T> scaled(int scale)
     {
-        ModSet<T> ret = new ModSet<>();
+        ModSet<T> ret = new ModSet<>(this.p);
         entrySet().forEach((e) -> {
             ret.add(e.getKey(), e.getValue() * scale);
         });

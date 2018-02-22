@@ -4,11 +4,18 @@ import java.util.Arrays;
 
 public class Matrices
 {
+    private final int P,Q;
+    private final ResMath resmath;
+    public Matrices(int P){
+        this.P = P;
+        this.Q = 2*P-2;
+        this.resmath = ResMath.get(P);
+    }
     /* row-reduces a matrix (in place).
      * Returns an array giving the column position of the leading 1 in each row. 
      * It should be noted that matrices are assumed to be reduced to lowest
      * non-negative residues (mod p), and this operation respects that. */
-    public static int[] rref(int[][] mat, int preserve_right)
+    public int[] rref(int[][] mat, int preserve_right)
     {
         if(mat.length == 0)
             return new int[] {};
@@ -32,12 +39,12 @@ public class Matrices
             leading_cols[i] = j;
 
             /* normalize the row */
-            int inv = ResMath.inverse[mat[i][j]];
+            int inv = resmath.inverse[mat[i][j]];
             for(int k = h; k < w; k++)
-                mat[i][k] = (mat[i][k] * inv) % Config.P;
+                mat[i][k] = (mat[i][k] * inv) % P;
 
             /* clear the rest of the column. this part is cubic-time so we optimize P=2 */
-            if(Config.P == 2) {
+            if(P == 2) {
                 for(int k = 0; k < h; k++) {
                     if(mat[k][j] == 0) continue;
                     if(k == i) continue;
@@ -48,9 +55,9 @@ public class Matrices
                 for(int k = 0; k < h; k++) {
                     if(mat[k][j] == 0) continue;
                     if(k == i) continue;
-                    int mul = Config.P - mat[k][j];
+                    int mul = P - mat[k][j];
                     for(int l = 0; l < w; l++)
-                        mat[k][l] = (mat[k][l] + mat[i][l] * mul) % Config.P;
+                        mat[k][l] = (mat[k][l] + mat[i][l] * mul) % P;
                 }
             }
         }
@@ -60,7 +67,7 @@ public class Matrices
 
 
     /* unused */
-    public static void printMatrix(String name, int[][] mat)
+    public void printMatrix(String name, int[][] mat)
     {
         System.out.print(name + ":");
         if(mat.length == 0) {
@@ -77,7 +84,7 @@ public class Matrices
         System.out.println();
     }
 
-    public static double[] transform3(double[][] m, double[] v)
+    public double[] transform3(double[][] m, double[] v)
     {
         return new double[] {
             m[0][0] * v[0] + m[0][1] * v[1] + m[0][2] * v[2],
@@ -86,7 +93,7 @@ public class Matrices
         };
     }
 
-    public static double[][] mmult3(double[][] m, double[][] n)
+    public double[][] mmult3(double[][] m, double[][] n)
     {
         double[][] r = new double[3][3];
         for(int i = 0; i < 3; i++)
@@ -96,7 +103,7 @@ public class Matrices
         return r;
     }
 
-    public static double[][] transpose3(double[][] m) {
+    public double[][] transpose3(double[][] m) {
         double[][] r = new double[3][3];
         for(int i = 0; i < 3; i++)
             for(int j = 0; j < 3; j++)

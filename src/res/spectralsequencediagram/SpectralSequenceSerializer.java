@@ -32,8 +32,6 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
         ts.num_gradings = t.num_gradings();
         ts.classes = t.getClasses();
         ts.structlines = t.getStructlines();
-        ts.xscale = t.getXScale();
-        ts.yscale = t.getYScale();
         ts.T_max = Config.T_CAP;
         return jsc.serialize(ts,SseqToSerialize.class);
     }
@@ -81,17 +79,7 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
 //            System.out.println(classesByDegree.get(new int[] {0,0}).iterator().next().getName());
         }
         
-        @Override
-        public double getXScale(){
-            return xscale != 0 ? xscale : 1;
-        }
 
-        @Override
-        public double getYScale(){
-            return yscale != 0 ? yscale : 1;
-        }
-
-        
         @Override
         public int num_gradings() {
             return num_gradings;
@@ -157,16 +145,6 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
             
         }
 
-        @Override
-        public void setXScale(double xscale) {
-            this.xscale = xscale;
-        }
-
-        @Override
-        public void setYScale(double yscale) {
-            this.yscale = yscale;
-        }
-        
     }
     
     private class IntPair {

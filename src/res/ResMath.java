@@ -7,16 +7,37 @@ import java.util.*;
  */
 public final class ResMath
 {
-    public static int[] inverse;
+    private static final Map<Integer,ResMath> instances = new HashMap();
+    
+    public int[] inverse;
 
+    private final int p;
+    private final int q;
+    
+    public static ResMath get(int p){
+        ResMath r = instances.get(p);
+        if(r==null){
+            r = new ResMath(p);
+            instances.put(p,r);
+        }
+        return r;
+    }
+    
+    private ResMath(int p){
+        this.BINOM_CACHE = new TreeMap<>();
+        this.p = p;
+        this.q = 2*p - 2;
+        this.calcInverses();
+    }
+    
     public static boolean binom_2(int a, int b)
     {
         return ((~a) & b) == 0;
     }
 
-    private static final Map<Integer,Integer> BINOM_CACHE = new TreeMap<Integer,Integer>();
-    private static Integer binom_cache_key(int a, int b) { return (a<<16) | b; }
-    public static int binom_p(int a, int b)
+    private final Map<Integer,Integer> BINOM_CACHE;
+    private Integer binom_cache_key(int a, int b) { return (a<<16) | b; }
+    public int binom_p(int a, int b)
     {
         Integer s = binom_cache_key(a,b);
         Integer i = BINOM_CACHE.get(s);
@@ -33,22 +54,22 @@ public final class ResMath
         return ret;
     }
 
-    public static int dmod(int n)
+    public int dmod(int n)
     {
-        return (n + (Config.P << 16)) % Config.P;
+        return (n + (p << 16)) % p;
     }
 
-    public static int floorstep(int n, int m)
+    public int floorstep(int n, int m)
     {
         return (n / m) * m;
     }
 
-    static void calcInverses()
+    void calcInverses()
     {
-        inverse = new int[Config.P];
-        for(int i = 1; i < Config.P; i++) {
-            for(int j = 1; j < Config.P; j++) {
-                if((i * j) % Config.P == 1) {
+        inverse = new int[p];
+        for(int i = 1; i < p; i++) {
+            for(int j = 1; j < p; j++) {
+                if((i * j) % p == 1) {
                     inverse[i] = j;
                     break;
                 }

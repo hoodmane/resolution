@@ -31,11 +31,11 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
         return this;
     }
     
-    public Generator(int[] deg, int idx)
+    public Generator(int p,int[] deg, int idx)
     {
         this.deg = deg;
         this.idx = idx;
-        img = new DModSet<>();
+        img = new DModSet<>(p);
     }
             
     @Override public int compareTo(Generator<T> b)

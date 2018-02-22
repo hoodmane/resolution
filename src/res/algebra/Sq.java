@@ -5,13 +5,11 @@ import java.util.*;
 
 public class Sq implements GradedElement<Sq>
 {
-    public static final Sq UNIT = new Sq(new int[] {});
-    public static final Sq[] HOPF = new Sq[] {
-        new Sq(1),
-        new Sq(Config.Q),
-        new Sq(Config.P*Config.Q),
-        new Sq(Config.P*Config.P*Config.Q)
-    };
+    public final AlgebraFactory factory;
+    public final int p;
+    public ResMath resmath = ResMath.get(Config.P);
+    
+
 
 
     public int[] q; /* Indices of the power operations.
@@ -19,8 +17,16 @@ public class Sq implements GradedElement<Sq>
                 Mod p>2, 2i(p-1) indicates P^i, 2i(p-1)+1 indicates B P^i. */
 
 
-    public Sq(int[] qq) { q = qq; }
-    public Sq(int qq) { q = new int[] {qq}; }
+    public Sq(int p,int[] q) {
+        this.p = p;
+        this.q = q; 
+        factory = AlgebraFactory.get(p);
+    }
+    public Sq(int p,int qq) { 
+        this.p = p;
+        this.q = new int[] {qq}; 
+        factory = AlgebraFactory.get(p);
+    }
     
     private static final int[] EMPTY = new int[] {};
     private static final int[] ZERO = new int[] {0};
@@ -70,16 +76,16 @@ public class Sq implements GradedElement<Sq>
         System.arraycopy(o.q, 0, ret, q.length, o.q.length);
 
         if(Config.P == 2 && !Config.MICHAEL_MODE)
-            return new Sq(ret).resolve_2();
+            return factory.Sq(ret).resolve_2();
         else
-            return new Sq(ret).resolve_p();
+            return factory.Sq(ret).resolve_p();
     }
 
     private ModSet<Sq> resolve_2()
     {
         ModSet<Sq> ret;
 
-        ret = new ModSet<>();
+        ret = factory.ModSet();
 
         for(int i = q.length - 2; i >= 0; i--) {
             int a = q[i];
@@ -107,7 +113,7 @@ public class Sq implements GradedElement<Sq>
                 }
 
                 /* recurse */
-                new Sq(t).resolve_2().entrySet().forEach((sub) -> {
+                factory.Sq(t).resolve_2().entrySet().forEach((sub) -> {
                     ret.add(sub.getKey(), sub.getValue());
                 });
             }
@@ -124,7 +130,7 @@ public class Sq implements GradedElement<Sq>
     {
         ModSet<Sq> ret;
 
-        ret = new ModSet<>();
+        ret = factory.ModSet();
         
         /* convenience */
         final int P = Config.P;
@@ -151,13 +157,13 @@ public class Sq implements GradedElement<Sq>
 //                System.out.printf("adem: x=%d y=%d a=%d b=%d sign=%d\n", x, y, a, b, sign);
 
                 if(ry == 0)
-                    resolve_p_add_term( sign*ResMath.binom_p(R*(b-c)-1,a-c*P  ), (a+b-c)*Q+rx, c*Q  , i, ret);
+                    resolve_p_add_term(sign*resmath.binom_p(R*(b-c)-1,a-c*P  ), (a+b-c)*Q+rx, c*Q  , i, ret);
                 else {
                     if(rx == 0) {
-                        resolve_p_add_term( sign*ResMath.binom_p(R*(b-c)  ,a-c*P  ), (a+b-c)*Q+1, c*Q  , i, ret);
-                        resolve_p_add_term(-sign*ResMath.binom_p(R*(b-c)-1,a-c*P-1), (a+b-c)*Q  , c*Q+1, i, ret);
+                        resolve_p_add_term(sign*resmath.binom_p(R*(b-c)  ,a-c*P  ), (a+b-c)*Q+1, c*Q  , i, ret);
+                        resolve_p_add_term(-sign*resmath.binom_p(R*(b-c)-1,a-c*P-1), (a+b-c)*Q  , c*Q+1, i, ret);
                     } else
-                        resolve_p_add_term(-sign*ResMath.binom_p(R*(b-c)-1,a-c*P-1), (a+b-c)*Q+1, c*Q+1, i, ret);
+                        resolve_p_add_term(-sign*resmath.binom_p(R*(b-c)-1,a-c*P-1), (a+b-c)*Q+1, c*Q+1, i, ret);
                 }
             }
 
@@ -173,7 +179,7 @@ public class Sq implements GradedElement<Sq>
     {
 //        System.out.printf("adem_term: coeff=%d a=%d b=%d\n", coeff, a, b);
 
-        coeff = ResMath.dmod(coeff);
+        coeff = resmath.dmod(coeff);
         if(coeff == 0) return; /* save some work... */
 
         int[] t;
@@ -189,7 +195,7 @@ public class Sq implements GradedElement<Sq>
         }
 
         /* recurse */
-        for(Map.Entry<Sq,Integer> sub : new Sq(t).resolve_p().entrySet())
+        for(Map.Entry<Sq,Integer> sub : factory.Sq(t).resolve_p().entrySet())
             ret.add(sub.getKey(), sub.getValue() * coeff);
     }
 
@@ -241,6 +247,11 @@ public class Sq implements GradedElement<Sq>
             if(q[i] != o.q[i])
                 return q[i] - o.q[i];
         return 0;
+    }
+
+    @Override
+    public int getP() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 }

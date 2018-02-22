@@ -6,14 +6,22 @@ import java.util.Map;
 /* to work around generic array restrictions */
 public class DModSet<T extends GradedElement<T>> extends ModSet<Dot<T>>
 {
-    public DModSet() {}
-    public DModSet(Dot<T> d) {
-        super(d);
+
+    /**
+     *
+     * @param p
+     */
+    public DModSet(int p) {
+        super(p);
+    }
+    
+    public DModSet(int p,Dot<T> d) {
+        super(p,d);
     }
 
     public DModSet<T> times(T sq, GradedAlgebra<T> alg)
     {
-        DModSet<T> ret = new DModSet<>();
+        DModSet<T> ret = new DModSet<>(p);
         for(Map.Entry<Dot<T>,Integer> e1 : entrySet()) {
             Dot<T> d = e1.getKey();
             ModSet<T> prod = alg.times(sq, d.sq);
@@ -25,7 +33,7 @@ public class DModSet<T extends GradedElement<T>> extends ModSet<Dot<T>>
     
     public DModSet<T> times(T sq, GradedModule<T> module)
     {
-        DModSet<T> ret = new DModSet<>();
+        DModSet<T> ret = new DModSet<>(p);
         for(Map.Entry<Dot<T>,Integer> e1 : entrySet()) {
             Dot<T> d = e1.getKey();
             DModSet<T> prod = module.act(d, sq);
@@ -37,11 +45,11 @@ public class DModSet<T extends GradedElement<T>> extends ModSet<Dot<T>>
 
     public DModSet<T> dscaled(int scale)
     {
-        DModSet<T> ret = new DModSet<>();
-        if(ResMath.dmod(scale) == 0)
+        DModSet<T> ret = new DModSet<>(p);
+        if(resmath.dmod(scale) == 0)
             return ret; // scaling by 0
         for(Map.Entry<Dot<T>,Integer> e1 : entrySet())
-            ret.put(e1.getKey(), ResMath.dmod(e1.getValue() * scale));
+            ret.put(e1.getKey(), resmath.dmod(e1.getValue() * scale));
         return ret;
 
     }

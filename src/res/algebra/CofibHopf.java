@@ -5,16 +5,21 @@ import java.util.*;
 
 public class CofibHopf extends GradedModule<Sq>
 {
-    private int i;
-    private Dot<Sq> d1, d2;
+    private final int p;
+    private final AlgebraFactory factory; 
+    private final int i;
+    private final Dot<Sq> d1, d2;
 
-    public CofibHopf(int i)
+    
+    public CofibHopf(int p, int i)
     {
+        this.p = p;
+        factory = AlgebraFactory.get(p);
         this.i = i;
         /* XXX should follow the number of extra gradings on alg */
-        Generator<Sq> g = new Generator<>(new int[] {-1,0,0}, 0);
-        d1 = new Dot<>(g, Sq.UNIT);
-        d2 = new Dot<>(g, Sq.HOPF[i]);
+        Generator<Sq> g = new Generator<>(p,new int[] {-1,0,0}, 0);
+        d1 = new Dot<>(g, factory.UNIT);
+        d2 = new Dot<>(g, factory.HOPF[i]);
     }
 
     @Override public Iterable<Dot<Sq>> basis(int deg)
@@ -26,14 +31,19 @@ public class CofibHopf extends GradedModule<Sq>
 
     @Override public DModSet<Sq> act(Dot<Sq> o, Sq sq)
     {
-        DModSet<Sq> ret = new DModSet<>();
-        if(o.deg[1] == d1.deg[1] && sq.equals(Sq.UNIT))
+        DModSet<Sq> ret = new DModSet<>(p);
+        if(o.deg[1] == d1.deg[1] && sq.equals(factory.UNIT))
             ret.add(d1,1);
-        if(o.deg[1] == d2.deg[1] && sq.equals(Sq.UNIT))
+        if(o.deg[1] == d2.deg[1] && sq.equals(factory.UNIT))
             ret.add(d2,1);
-        if(o.deg[1] == d1.deg[1] && sq.equals(Sq.HOPF[i]))
+        if(o.deg[1] == d1.deg[1] && sq.equals(factory.HOPF[i]))
             ret.add(d2,1);
         return ret;
+    }
+
+    @Override
+    public int getP() {
+        return p;
     }
 }
 

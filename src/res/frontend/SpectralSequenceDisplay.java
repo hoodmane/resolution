@@ -75,7 +75,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
 
 
     
-    public static SpectralSequenceDisplay constructFrontend(SpectralSequence sseq) 
+    public static SpectralSequenceDisplay constructFrontend(SpectralSequence sseq,DisplaySettings settings) 
     {
         SpectralSequenceDisplay d = new SpectralSequenceDisplay(sseq);
         d.frame = new JFrame("Resolution");
@@ -88,7 +88,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         d.addMouseMotionListener(d);
         d.addMouseWheelListener(d);
         System.out.print("");
-        d.setScale(sseq.getXScale(), sseq.getYScale());
+        d.setScale(settings.getXScale(),settings.getYScale());
         return d;
     }
     
@@ -127,9 +127,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         } 
     }
     
-    public SpectralSequenceDisplay<U> setScale(double xscale,double yscale){
-        sseq.setXScale(xscale);
-        sseq.setYScale(yscale);
+    private SpectralSequenceDisplay<U> setScale(double xscale,double yscale){
         
         this.yscale = yscale/xscale;
         this.zoom = Math.log(xscale)/Math.log(ZOOM_BASE);

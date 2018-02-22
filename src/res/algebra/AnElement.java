@@ -1,5 +1,8 @@
 package res.algebra;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class AnElement implements GradedElement<AnElement>
 {
     static final int[] EGR = {};
@@ -7,10 +10,26 @@ public class AnElement implements GradedElement<AnElement>
     int deg;
     int idx;
     static int idxcounter = 0;
+    private final int p;
 
-    static final AnElement UNIT = new AnElement(new ModSet<Sq>(Sq.UNIT), 0);
+    @Override
+    public int getP(){
+        return p;
+    }
+    
+    static private final Map<Integer,AnElement> UNIT = new HashMap<>();
+    
+    static AnElement UNIT(int p){
+        AnElement u = UNIT.get(p);
+        if(u==null){
+            u = new AnElement(p,new ModSet<Sq>(p,AlgebraFactory.get(p).UNIT), 0);
+            UNIT.put(p,u);
+        }
+        return u;
+    }
 
-    AnElement(ModSet<Sq> ms, int d) {
+    AnElement(int p, ModSet<Sq> ms, int d) {
+        this.p = p;
         modset = ms;
         deg = d;
         idx = idxcounter++;
@@ -32,5 +51,6 @@ public class AnElement implements GradedElement<AnElement>
     @Override public String toString() {
         return "(" + modset.toString() + ")";
     }
+
 }
 

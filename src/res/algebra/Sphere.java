@@ -5,13 +5,15 @@ import java.util.*;
 public class Sphere<T extends GradedElement<T>> extends GradedModule<T>
 {
     private final Dot<T> d;
-    T unit;
+    private final T unit;
+    private final int p;
 
-    public Sphere(T unit)
+    public Sphere(int p, T unit)
     {
+        this.p = p;
         this.unit = unit;
         /* XXX should follow the number of extra gradings on alg */
-        Generator<T> g = new Generator<>(new int[] {-1,0,0}, 0);
+        Generator<T> g = new Generator<>(p,new int[] {-1,0,0}, 0);
         d = new Dot<>(g, unit);
     }
 
@@ -22,9 +24,14 @@ public class Sphere<T extends GradedElement<T>> extends GradedModule<T>
 
     @Override public DModSet<T> act(Dot<T> o, T sq)
     {
-        DModSet<T> ret = new DModSet<>();
+        DModSet<T> ret = new DModSet<>(p);
         if(sq.equals(unit))
             ret.add(d,1);
         return ret;
+    }
+
+    @Override
+    public int getP() {
+        return p;
     }
 }
