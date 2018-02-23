@@ -92,7 +92,7 @@ public class Main {
             spec.xscale = 1;
         }
         if( spec.yscale == 0 ){
-            spec.yscale = 1;
+            spec.yscale = 2*p-2;
         }        
 
         if(spec.scale>0){
@@ -130,9 +130,10 @@ public class Main {
         JsonElement json = spec.json;
         /* backend */
         BrunerBackend<T> back = new BrunerBackend<>(alg,mod,spec.T_max);
+        DisplaySettings settings = SseqJson.GSON.fromJson(json,DisplaySettings.class);
         SpectralSequenceDisplay display = 
             SpectralSequenceDisplay.constructFrontend(
-                back,SseqJson.GSON.fromJson(json,DisplaySettings.class)
+                back, settings
             ).start();
         if(spec.tex_output!=null){
             back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(back).writeToFile("tex/"+spec.tex_output);});
@@ -151,8 +152,7 @@ public class Main {
                 
         if(spec.pdf_output!=null){
             back.registerDoneCallback(() -> { 
-                
-                display.writeToFile("tex/"+spec.pdf_output);
+                new SpectralSequenceImageWriter(back,settings).writeToFile("tex/"+spec.pdf_output);
             });
         }        
         

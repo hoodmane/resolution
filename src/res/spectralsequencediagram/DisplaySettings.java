@@ -10,10 +10,12 @@ package res.spectralsequencediagram;
  * @author Hood
  */
 public class DisplaySettings {
+    public int prime;
     public double xscale, yscale;
     public int xmin, xmax, ymin, ymax;
     public int xgridstep, ygridstep;
     public String gridStyle;
+    public int T_max;
     
     public double getXScale(){
         if(xscale==0){
@@ -23,18 +25,9 @@ public class DisplaySettings {
     }
     
     public double getYScale(){
-        if(yscale==0){
-            yscale=1;
-        }
-        return yscale;
-    }
-    
-    public void initialize(){
-        if(xscale == 0){
-            xscale = 1;
-        }
-        if(xscale == 0){
-            xscale = 1;
+        if(yscale == 0){
+            yscale = (prime==0 ? 1 : 2 * prime - 2);
         }        
+        return yscale;
     }
 }
