@@ -60,10 +60,12 @@ public class JSONModule extends GradedModule<Sq> {
      * @param relations  A list of relations. Each relation is a string of the form "P^n(
      * @throws ParseException 
      */
-    public JSONModule(int p,Map<String,Integer> generators, List<String> relations) throws ParseException{
+    public JSONModule(JsonSpecification spec) throws ParseException{
+        this.p = spec.p;        
         this.zero = new DModSet<>(p);
-        this.p = p;
-        factory = AlgebraFactory.get(p);
+        Map<String, Integer> generators = spec.generators;
+        List<String> relations = spec.relations;
+        factory = AlgebraFactory.getInstance(p);
         // Default to the sphere.
         if(generators==null){
             generators = new TreeMap<String,Integer>();
@@ -140,7 +142,7 @@ public class JSONModule extends GradedModule<Sq> {
 	      case "Sq" : 
                  break;
               case "P":
-                 operatorDegree *= Config.Q;
+                 operatorDegree *= spec.q;
                  break;
               case "b":
                  operatorDegree = 1;
@@ -215,24 +217,24 @@ public class JSONModule extends GradedModule<Sq> {
 
     @Override public DModSet<Sq> act(Dot<Sq> o, Sq sq)
     {
-        if(sq.q.length == 0)
+        if(sq.indices.length == 0)
             return new DModSet<>(p,o);
-        else if(sq.q.length == 1) {
+        else if(sq.indices.length == 1) {
 
             Map<Integer,DModSet<Sq>> map = actions.get(o);
             if(map == null) {
                 System.err.println("Foreign dot detected in BrunerNotationModule");
                 System.exit(1);
             }
-            DModSet<Sq> ret = map.get(sq.q[0]);
+            DModSet<Sq> ret = map.get(sq.indices[0]);
             if(ret == null) return zero; // no defined action indicates zero
             else return ret;
 
         } else {
-            int[] sqcopy = new int[sq.q.length-1];
-            System.arraycopy(sq.q, 0, sqcopy, 0, sq.q.length-1);
+            int[] sqcopy = new int[sq.indices.length-1];
+            System.arraycopy(sq.indices, 0, sqcopy, 0, sq.indices.length-1);
             Sq next = factory.Sq(sqcopy);
-            Sq curr = factory.Sq(sq.q[sq.q.length-1]);
+            Sq curr = factory.Sq(sq.indices[sq.indices.length-1]);
             return act(o, curr).times(next,this);
         }
     }

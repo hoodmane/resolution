@@ -18,16 +18,16 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
         this.N = N;
         this.p = p;
         this.q = 2*p-2;
-        this.factory = AlgebraFactory.get(p);
-        UNIT = new AnElement(p,new ModSet<>(p,factory.UNIT), 0);;
+        this.factory = AlgebraFactory.getInstance(p);
+        UNIT = factory.AnUNIT;
         
-        this.resmath = ResMath.get(p);
+        this.resmath = ResMath.getInstance(p);
         // precompute hopf elements
-        hopf.add(new AnElement(p,new ModSet<>(p,factory.HOPF[0]),1));
+        hopf.add(new AnElement(p,factory.ModSet(factory.HOPF[0]),1));
         int pow = q;
         for(int i = 1; i <= N; i++) {
-            Sq sq = new Sq(p,pow);
-            AnElement elt = new AnElement(p,new ModSet<>(p,sq), pow);
+            Sq sq = factory.Sq(pow);
+            AnElement elt = new AnElement(p,factory.ModSet(sq), pow);
             hopf.add(elt);
             pow *= p;
         }
@@ -46,11 +46,11 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
 
         ret = new TreeMap<>();
         if(n == 0) {
-            ret.put(factory.UNIT, AnElement.UNIT(p));
+            ret.put(factory.UNIT, UNIT);
         } else {
             // add a new hopf element as appropriate
             for(AnElement elt : hopf) if(elt.deg == n) {
-                Sq sq = new Sq(p,new int[] {n});
+                Sq sq = factory.Sq(n);
                 ret.put(sq, elt);
             }
 
@@ -62,7 +62,7 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
 
                     for(AnElement b : basis(n-d)) {
                         // multiply
-                        ModSet<Sq> prod = new ModSet<>(p);
+                        ModSet<Sq> prod = factory.ModSet();
                         for(Map.Entry<Sq,Integer> e1 : a.modset.entrySet()) {
                             for(Map.Entry<Sq,Integer> e2 : b.modset.entrySet()) {
                                 ModSet<Sq> sqprod = e1.getKey().times(e2.getKey());
@@ -74,7 +74,7 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
                         // reduce by Gaussian elimination
                         Sq highKey = null;
                         int highVal = -1;
-                        ModSet<AnElement> eltprod = new ModSet<>(p);
+                        ModSet<AnElement> eltprod = factory.ModSet();
                         while(! prod.isEmpty()) {
                             Map.Entry<Sq,Integer> high = prod.lastEntry();
                             highKey = high.getKey();
@@ -111,8 +111,8 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
 
     @Override public ModSet<AnElement> times(AnElement a, AnElement b)
     {
-        if(a == UNIT) return new ModSet<>(p,b);
-        if(b == UNIT) return new ModSet<>(p,a);
+        if(a == UNIT) return factory.ModSet(b);
+        if(b == UNIT) return factory.ModSet(a);
         return mult.get(a).get(b);
     }
 

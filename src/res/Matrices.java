@@ -9,7 +9,7 @@ public class Matrices
     public Matrices(int P){
         this.P = P;
         this.Q = 2*P-2;
-        this.resmath = ResMath.get(P);
+        this.resmath = ResMath.getInstance(P);
     }
     /* row-reduces a matrix (in place).
      * Returns an array giving the column position of the leading 1 in each row. 

@@ -17,16 +17,6 @@ public class AnElement implements GradedElement<AnElement>
         return p;
     }
     
-    static private final Map<Integer,AnElement> UNIT = new HashMap<>();
-    
-    static AnElement UNIT(int p){
-        AnElement u = UNIT.get(p);
-        if(u==null){
-            u = new AnElement(p,new ModSet<Sq>(p,AlgebraFactory.get(p).UNIT), 0);
-            UNIT.put(p,u);
-        }
-        return u;
-    }
 
     AnElement(int p, ModSet<Sq> ms, int d) {
         this.p = p;

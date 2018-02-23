@@ -45,8 +45,8 @@ public class BrunerNotationModule extends GradedModule<Sq>
     public BrunerNotationModule(int p,String filepath)
     {
         this.p = p;
-        factory = AlgebraFactory.get(p);
-        this.zero = new DModSet(p);        
+        factory = AlgebraFactory.getInstance(p);
+        this.zero = factory.DModSet();        
 	File file;
         /* XXX issues with extra gradings -- follow alg? */
         if(filepath==null || filepath.isEmpty()){
@@ -111,9 +111,9 @@ public class BrunerNotationModule extends GradedModule<Sq>
             int r = Integer.parseInt(toks[1]);
             int k = Integer.parseInt(toks[2]);
 
-            DModSet<Sq> set = new DModSet<>(p);
+            DModSet<Sq> set = factory.DModSet();
 
-            if(Config.P == 2) {
+            if(p == 2) {
                 if(toks.length != 3 + k) {
                     System.err.printf("Bruner notation: invalid action specification for Sq^%d g_%d\n", r, g);
                     System.exit(1);
@@ -145,24 +145,24 @@ public class BrunerNotationModule extends GradedModule<Sq>
 
     @Override public DModSet<Sq> act(Dot<Sq> o, Sq sq)
     {
-        if(sq.q.length == 0)
-            return new DModSet<>(p,o);
-        else if(sq.q.length == 1) {
+        if(sq.indices.length == 0)
+            return factory.DModSet(o);
+        else if(sq.indices.length == 1) {
 
             Map<Integer,DModSet<Sq>> map = actions.get(o);
             if(map == null) {
                 System.err.println("Foreign dot detected in BrunerNotationModule");
                 System.exit(1);
             }
-            DModSet<Sq> ret = map.get(sq.q[0]);
+            DModSet<Sq> ret = map.get(sq.indices[0]);
             if(ret == null) return zero; // no defined action indicates zero
             else return ret;
 
         } else {
-            int[] sqcopy = new int[sq.q.length-1];
-            for(int i = 0; i < sq.q.length-1; i++) sqcopy[i] = sq.q[i];
+            int[] sqcopy = new int[sq.indices.length-1];
+            for(int i = 0; i < sq.indices.length-1; i++) sqcopy[i] = sq.indices[i];
             Sq next = new Sq(p,sqcopy);
-            Sq curr = new Sq(p,sq.q[sq.q.length-1]);
+            Sq curr = new Sq(p,sq.indices[sq.indices.length-1]);
             return act(o, curr).times(next,this);
         }
     }

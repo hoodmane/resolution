@@ -14,7 +14,7 @@ public final class ResMath
     private final int p;
     private final int q;
     
-    public static ResMath get(int p){
+    public static ResMath getInstance(int p){
         ResMath r = instances.get(p);
         if(r==null){
             r = new ResMath(p);

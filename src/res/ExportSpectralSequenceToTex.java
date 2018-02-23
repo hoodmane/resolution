@@ -25,8 +25,8 @@ public class ExportSpectralSequenceToTex {
         classes = new StringBuilder(20*sseq.totalGens());
         structlines = new StringBuilder(20*sseq.totalGens());
         output = new StringBuilder(40*sseq.totalGens());
-        for(int x=0; x<Config.T_CAP;x++){
-            for(int y=0;y+x<Config.T_CAP;y++){
+        for(int x=0; x < sseq.getTMax();x++){
+            for( int y=0; y+x < sseq.getTMax(); y++){
                 sseq.getClasses(multideg(x,y)).forEach((c)->{
                     addClass(c);
                     c.getStructlines().stream().forEach((sl) -> 

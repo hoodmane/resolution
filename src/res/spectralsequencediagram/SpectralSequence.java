@@ -23,6 +23,8 @@ public interface SpectralSequence {
     
     Collection<Structline> getStructlines();
     
+    int getTMax();
+    
     int getState(int x, int y);
     int getState(int[] p);
      /* the ping mechanism is to receive updates when the state of a certain multi-index changes */

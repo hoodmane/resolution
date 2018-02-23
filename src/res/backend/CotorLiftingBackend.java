@@ -30,7 +30,7 @@
 //
 //
 //    public CotorLiftingBackend() {
-//        Main.die_if(Config.P != 2, "Cartan-Eilenberg SS only implemented for p=2");
+//        Main.die_if(p != 2, "Cartan-Eilenberg SS only implemented for p=2");
 //    }
 //
 //

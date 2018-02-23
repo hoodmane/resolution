@@ -11,14 +11,16 @@ import java.util.Map;
 import java.util.List;
 
 public class JsonSpecification {
-    public int prime;
+    public int prime, p, q;
     public String algebra;
     public Map<String,Integer> generators;
     public List<String> relations;
     public int max_stem;
+    public int T_max;
     public String tex_output;
     public String json_output;
     public String pdf_output;    
+    public JsonElement json;
     public double xscale;
     public double yscale;
     public double scale;

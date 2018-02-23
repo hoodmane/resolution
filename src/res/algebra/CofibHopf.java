@@ -14,7 +14,7 @@ public class CofibHopf extends GradedModule<Sq>
     public CofibHopf(int p, int i)
     {
         this.p = p;
-        factory = AlgebraFactory.get(p);
+        factory = AlgebraFactory.getInstance(p);
         this.i = i;
         /* XXX should follow the number of extra gradings on alg */
         Generator<Sq> g = new Generator<>(p,new int[] {-1,0,0}, 0);

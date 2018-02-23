@@ -32,7 +32,7 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
         ts.num_gradings = t.num_gradings();
         ts.classes = t.getClasses();
         ts.structlines = t.getStructlines();
-        ts.T_max = Config.T_CAP;
+        ts.T_max = t.getTMax();
         return jsc.serialize(ts,SseqToSerialize.class);
     }
 
@@ -143,6 +143,11 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
         @Override
         public void removeListener(PingListener l) {
             
+        }
+
+        @Override
+        public int getTMax() {
+            return T_max;
         }
 
     }

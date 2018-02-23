@@ -6,12 +6,20 @@ import java.util.*;
 /* The Steenrod algebra. */
 public class SteenrodAlgebra implements GradedAlgebra<Sq>
 {
-    private final int p;
+    private final int p, q;
     private final AlgebraFactory factory;
+    private final boolean MICHAEL_MODE, MOTIVIC_GRADING;
     public SteenrodAlgebra(int p) {
-        this.p = p;
-        factory = AlgebraFactory.get(p);
+        this(p,false,false);
     }
+    
+    public SteenrodAlgebra(int p,boolean MICHAEL_MODE,boolean MOTIVIC_GRADING) {
+        this.p = p;
+        this.q = 2*p-2;
+        this.MICHAEL_MODE = MICHAEL_MODE;
+        this.MOTIVIC_GRADING = MOTIVIC_GRADING;
+        factory = AlgebraFactory.getInstance(p,MICHAEL_MODE,MOTIVIC_GRADING);
+    }    
 
     @Override public Iterable<Sq> basis(int n)
     {
@@ -43,14 +51,14 @@ public class SteenrodAlgebra implements GradedAlgebra<Sq>
 
     @Override public int extraDegrees()
     {
-        if(Config.MICHAEL_MODE && Config.P == 2) return 1;
-        if(Config.MOTIVIC_GRADING) return 1;
+        if(MICHAEL_MODE && p == 2) return 1;
+        if(MOTIVIC_GRADING) return 1;
         return 0;
     }
 
     static final Map<Integer,Iterable<int[]>> PART_CACHE = new TreeMap<Integer,Iterable<int[]>>();
-    static Integer part_cache_key(int n, int max) {
-        return (Config.P << 28) ^ (n << 14) ^ max;
+    Integer part_cache_key(int n, int max) {
+        return (p << 28) ^ (n << 14) ^ max;
     }
     private static final Iterable<int[]> ZERO = Collections.emptyList(); /* no solutions */
     private static final Iterable<int[]> ONE = Collections.singleton(new int[] {}); /* the trivial partition of zero */
@@ -70,9 +78,9 @@ public class SteenrodAlgebra implements GradedAlgebra<Sq>
 
         Collection<int[]> ret = new ArrayList<>();
 
-        for(int i = n * (Config.P-1) / (Config.P * Config.Q) * Config.Q; i <= max; i += Config.Q) {
+        for(int i = n * (p-1) / (p * q) * q; i <= max; i += q) {
             /* try P^i */
-            for(int[] q0 : part_p(n-i, i/Config.P)) {
+            for(int[] q0 : part_p(n-i, i/p)) {
                 int[] q1 = new int[q0.length + 1];
                 q1[0] = i;
                 for(int j = 0; j < q0.length; j++)
@@ -81,7 +89,7 @@ public class SteenrodAlgebra implements GradedAlgebra<Sq>
             }
             /* try BP^i */
             if(i+1 > max) break;
-            for(int[] q0 : part_p(n-(i+1), (i+1)/Config.P)) {
+            for(int[] q0 : part_p(n-(i+1), (i+1)/p)) {
                 int[] q1 = new int[q0.length + 1];
                 q1[0] = i+1;
                 for(int j = 0; j < q0.length; j++)

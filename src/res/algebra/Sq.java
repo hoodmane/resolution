@@ -5,28 +5,37 @@ import java.util.*;
 
 public class Sq implements GradedElement<Sq>
 {
-    public final AlgebraFactory factory;
-    public final int p;
-    public ResMath resmath = ResMath.get(Config.P);
+    private final AlgebraFactory factory;
+    public final int p,q;
+    private final ResMath resmath;
     
+    private final boolean MICHAEL_MODE, MOTIVIC_GRADING;
 
 
 
-    public int[] q; /* Indices of the power operations.
+    public int[] indices; /* Indices of the power operations.
                 Mod 2, i indicates Sq^i.
                 Mod p>2, 2i(p-1) indicates P^i, 2i(p-1)+1 indicates B P^i. */
 
 
-    public Sq(int p,int[] q) {
-        this.p = p;
-        this.q = q; 
-        factory = AlgebraFactory.get(p);
-    }
     public Sq(int p,int qq) { 
-        this.p = p;
-        this.q = new int[] {qq}; 
-        factory = AlgebraFactory.get(p);
+        this(p,new int[] {qq});
     }
+        
+    public Sq(int p,int[] indices){
+        this(p,indices,false,false);
+    }
+    
+    public Sq(int p,int[] indices,boolean MICHAEL_MODE, boolean MOTIVIC_GRADING) {
+        this.p = p;
+        this.q = 2*p-2;
+        this.indices = indices; 
+        this.MICHAEL_MODE = MICHAEL_MODE;
+        this.MOTIVIC_GRADING = MOTIVIC_GRADING;
+        this.resmath = ResMath.getInstance(p);
+        factory = AlgebraFactory.getInstance(p,MICHAEL_MODE,MOTIVIC_GRADING);
+    }
+
     
     private static final int[] EMPTY = new int[] {};
     private static final int[] ZERO = new int[] {0};
@@ -40,42 +49,43 @@ public class Sq implements GradedElement<Sq>
      * identity operation; is this okay? */
     @Override public int[] extraGrading()
     {
-        if(Config.MICHAEL_MODE) {
-            for(int i : q)
-                if(i % Config.P != 0)
+        if(MICHAEL_MODE) {
+            for(int i : indices)
+                if(i % p != 0)
                     return ZERO;
             return ONE;
-        } else if(Config.MOTIVIC_GRADING) {
+        } else if(MOTIVIC_GRADING) {
             int tot = 0;
-            for(int a : q) tot += a/2;
+            for(int a : indices) tot += a/2;
             return SINGLETONS[tot];
-        } else return EMPTY;
+        } else 
+        return EMPTY;
     }
 
     @Override public int deg()
     {
         int deg = 0;
-        for(int i : q)
+        for(int i : indices)
             deg += i;
         return deg;
     }
 
     public int excess()
     {
-        if(q.length == 0) return 0;
-        int exc = q[q.length-1];
-        for(int i = 1; i < q.length; i++)
-            exc += q[i-1] - Config.P * q[i];
+        if(indices.length == 0) return 0;
+        int exc = indices[indices.length-1];
+        for(int i = 1; i < indices.length; i++)
+            exc += indices[i-1] - p * indices[i];
         return exc;
     }
 
     public ModSet<Sq> times(Sq o)
     {
-        int[] ret = new int[q.length + o.q.length];
-        System.arraycopy(q, 0, ret, 0, q.length);
-        System.arraycopy(o.q, 0, ret, q.length, o.q.length);
+        int[] ret = new int[indices.length + o.indices.length];
+        System.arraycopy(indices, 0, ret, 0, indices.length);
+        System.arraycopy(o.indices, 0, ret, indices.length, o.indices.length);
 
-        if(Config.P == 2 && !Config.MICHAEL_MODE)
+        if(p == 2 && !MICHAEL_MODE)
             return factory.Sq(ret).resolve_2();
         else
             return factory.Sq(ret).resolve_p();
@@ -87,9 +97,9 @@ public class Sq implements GradedElement<Sq>
 
         ret = factory.ModSet();
 
-        for(int i = q.length - 2; i >= 0; i--) {
-            int a = q[i];
-            int b = q[i+1];
+        for(int i = indices.length - 2; i >= 0; i--) {
+            int a = indices[i];
+            int b = indices[i+1];
 
             if(a >= 2 * b)
                 continue;
@@ -102,12 +112,12 @@ public class Sq implements GradedElement<Sq>
 
                 int[] t;
                 if(c == 0) {
-                    t = Arrays.copyOf(q, q.length - 1);
-                    for(int k = i+2; k < q.length; k++)
-                        t[k-1] = q[k];
+                    t = Arrays.copyOf(indices, indices.length - 1);
+                    for(int k = i+2; k < indices.length; k++)
+                        t[k-1] = indices[k];
                     t[i] = a+b-c;
                 } else {
-                    t = Arrays.copyOf(q, q.length);
+                    t = Arrays.copyOf(indices, indices.length);
                     t[i] = a+b-c;
                     t[i+1] = c;
                 }
@@ -133,15 +143,15 @@ public class Sq implements GradedElement<Sq>
         ret = factory.ModSet();
         
         /* convenience */
-        final int P = Config.P;
-        final int Q = 2 * (Config.P - 1);
-        final int R = Config.P - 1;
+        final int P = p;
+        final int Q = 2 * (p - 1);
+        final int R = p - 1;
 
-        for(int i = q.length - 2; i >= 0; i--) {
-            int x = q[i];
-            int y = q[i+1];
+        for(int i = indices.length - 2; i >= 0; i--) {
+            int x = indices[i];
+            int y = indices[i+1];
 
-            if(x >= Config.P * y)
+            if(x >= p * y)
                 continue;
 
             /* apply Adem relation */
@@ -150,7 +160,7 @@ public class Sq implements GradedElement<Sq>
             int rx = x % Q;
             int ry = y % Q;
 
-            for(int c = 0; c <= a/Config.P; c++) {
+            for(int c = 0; c <= a/p; c++) {
 
                 int sign = ((a ^ c) & 1) == 0  ?  1  :  -1;
 
@@ -184,12 +194,12 @@ public class Sq implements GradedElement<Sq>
 
         int[] t;
         if(b == 0) {
-            t = Arrays.copyOf(q, q.length - 1);
-            for(int k = i+2; k < q.length; k++)
-                t[k-1] = q[k];
+            t = Arrays.copyOf(indices, indices.length - 1);
+            for(int k = i+2; k < indices.length; k++)
+                t[k-1] = indices[k];
             t[i] = a;
         } else {
-            t = Arrays.copyOf(q, q.length);
+            t = Arrays.copyOf(indices, indices.length);
             t[i] = a;
             t[i+1] = b;
         }
@@ -201,20 +211,20 @@ public class Sq implements GradedElement<Sq>
 
     @Override public String toString()
     {
-        if(q.length == 0) return "1";
+        if(indices.length == 0) return "1";
         String s = "";
-        if(Config.P == 2 && ! Config.MICHAEL_MODE) {
-            for(int i : q) s += "Sq"+i;
+        if(p == 2 && ! MICHAEL_MODE) {
+            for(int i : indices) s += "Sq"+i;
         } else {
-            for(int i : q) {
+            for(int i : indices) {
                 if(i == 1)
                     s += "\u03b2"; /* beta */
-                else if(i % Config.Q == 0)
-                    s += "P"+(i/Config.Q);
-                else if(i % Config.Q == 1)
-                    s += "\u03b2P"+(i/Config.Q);
+                else if(i % q == 0)
+                    s += "P"+(i/q);
+                else if(i % q == 1)
+                    s += "\u03b2P"+(i/q);
                 else
-                    Main.die_if(true, "bad A_"+Config.P+" element: Sq"+i);
+                    Main.die_if(true, "bad A_"+p+" element: Sq"+i);
             }
         }
         return s;
@@ -223,7 +233,7 @@ public class Sq implements GradedElement<Sq>
     @Override public int hashCode()
     {
         int hash = 0;
-        for(int i : q)
+        for(int i : indices)
             hash = hash * 27863521 ^ i;
         return hash;
     }
@@ -231,21 +241,21 @@ public class Sq implements GradedElement<Sq>
     @Override public boolean equals(Object o)
     {
         Sq s = (Sq)o;
-        if(q.length != s.q.length)
+        if(indices.length != s.indices.length)
             return false;
-        for(int i = 0; i < q.length; i++)
-            if(q[i] != s.q[i])
+        for(int i = 0; i < indices.length; i++)
+            if(indices[i] != s.indices[i])
                 return false;
         return true;
     }
 
     @Override public int compareTo(Sq o)
     {
-        if(q.length != o.q.length)
-            return q.length - o.q.length;
-        for(int i = 0; i < q.length; i++)
-            if(q[i] != o.q[i])
-                return q[i] - o.q[i];
+        if(indices.length != o.indices.length)
+            return indices.length - o.indices.length;
+        for(int i = 0; i < indices.length; i++)
+            if(indices[i] != o.indices[i])
+                return indices[i] - o.indices[i];
         return 0;
     }
 

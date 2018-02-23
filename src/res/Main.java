@@ -24,10 +24,8 @@ import res.spectralsequencediagram.SpectralSequence;
 import res.spectralsequencediagram.SseqJson;
 
 public class Main {
+    private static final int T_MAX_DEFAULT = 50;
     
-    private static String texOutputFilename;
-    private static String jsonOutputFilename;
-    private static String pdfOutputFilename;
     public static void die_if(boolean test, String fail)
     {
         if(test) {
@@ -77,50 +75,49 @@ public class Main {
     }
     
     static void resolveJsonModule(JsonElement json){
-        JsonSpecification spec;
+        JsonSpecification spec = JsonSpecification.loadJson(json);
+        spec.json = json;
+        int p = spec.prime;
+        spec.p = p;
+        spec.q = 2*p-2;
         GradedModule<Sq> sqmod;
         try {
-            spec = JsonSpecification.loadJson(json);
-            Config.P = spec.prime;
-            System.out.println(Config.P);
-            Config.Q = 2 * (Config.P - 1);
-            Config.yscale = Config.Q;
-            sqmod = new JSONModule(Config.P,spec.generators,spec.relations);
+            sqmod = new JSONModule(spec);      
         } catch(ParseException e) {
            quit(e);
            return;
         }
-        texOutputFilename = spec.tex_output;
-        jsonOutputFilename = spec.json_output;
-        pdfOutputFilename = spec.pdf_output;
-        if(spec.xscale>0){
-            Config.xscale = spec.xscale;
+        
+        if( spec.xscale == 0 ){
+            spec.xscale = 1;
         }
-        if(spec.yscale>0){
-            Config.yscale = spec.yscale;
-        }
+        if( spec.yscale == 0 ){
+            spec.yscale = 1;
+        }        
+
         if(spec.scale>0){
-            Config.xscale *= spec.scale;
-            Config.yscale *= spec.scale;
+            spec.xscale *= spec.scale;
+            spec.yscale *= spec.scale;
         }
-
-
-        if(spec.max_stem > 0){
-            Config.T_CAP = spec.max_stem;
+        
+        if(spec.T_max == 0){
+            spec.T_max = 50;
         }
+        
+
         Matcher match;
         if(spec.algebra == null || "steenrod".equals(spec.algebra.toLowerCase())){
-             startBruner(new SteenrodAlgebra(Config.P), sqmod,json);
+             startBruner(new SteenrodAlgebra(spec.p), sqmod,spec);
         } else if("P".equals(spec.algebra)) {
-             startBruner(new EvenSteenrodAlgebra(Config.P), sqmod,json);
+             startBruner(new EvenSteenrodAlgebra(spec.p), sqmod,spec);
         } else if((match = A_N_ALGNAME_PAT.matcher(spec.algebra)).find()) {
              int n;
              try {
                  n = Integer.parseInt(match.group(1));
-                 startBruner(new AnAlgebra(Config.P,n),new AnModuleWrapper(sqmod),json);
+                 startBruner(new AnAlgebra(spec.p,n),new AnModuleWrapper(sqmod),spec);
              } catch (NumberFormatException e) {
                  if("".equals(match.group(1))){
-                     startBruner(new SteenrodAlgebra(Config.P), sqmod, json);
+                     startBruner(new SteenrodAlgebra(spec.p), sqmod, spec);
                  } else {
                      quit(new ParseException("Algebra " + spec.algebra + " not recognized." ,0));
                  }
@@ -128,33 +125,34 @@ public class Main {
         }
     }
 
-    static <T extends GradedElement<T>> void startBruner(GradedAlgebra<T> alg, GradedModule<T> mod,JsonElement json)
+    static <T extends GradedElement<T>> void startBruner(GradedAlgebra<T> alg, GradedModule<T> mod,JsonSpecification spec)
     {
+        JsonElement json = spec.json;
         /* backend */
-        BrunerBackend<T> back = new BrunerBackend<>(alg,mod);
+        BrunerBackend<T> back = new BrunerBackend<>(alg,mod,spec.T_max);
         SpectralSequenceDisplay display = 
             SpectralSequenceDisplay.constructFrontend(
                 back,SseqJson.GSON.fromJson(json,DisplaySettings.class)
             ).start();
-        if(texOutputFilename!=null){
-            back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(back).writeToFile("tex/"+texOutputFilename);});
+        if(spec.tex_output!=null){
+            back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(back).writeToFile("tex/"+spec.tex_output);});
         }
         
-        if(jsonOutputFilename!=null){
+        if(spec.json_output!=null){
             back.registerDoneCallback(() -> {
                 try {
-                    SseqJson.ExportSseq(back).writeToFile("tex/"+jsonOutputFilename);
+                    SseqJson.ExportSseq(back).writeToFile("tex/"+spec.json_output);
                 } catch (IOException ex) {
-                    System.out.println("Failed to write to tex/"+jsonOutputFilename);
+                    System.out.println("Failed to write to tex/"+spec.json_output);
 //                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
                 }
             });
         }
                 
-        if(pdfOutputFilename!=null){
+        if(spec.pdf_output!=null){
             back.registerDoneCallback(() -> { 
                 
-                display.writeToFile("tex/"+pdfOutputFilename);
+                display.writeToFile("tex/"+spec.pdf_output);
             });
         }        
         
@@ -181,25 +179,25 @@ public class Main {
     
     static void dialogInput(){
         {
-            String s;
-            sd = new SettingsDialog();
-            sd.setVisible(true); /* blocks until dialog has completed */
-
-            if(sd.cancelled)
-                System.exit(0);
-
-            /* prime */
-            Config.P = (Integer) sd.prime.getSelectedItem();
-            Config.Q = 2 * (Config.P - 1);
-            Config.yscale = Config.Q;
-            Config.T_CAP = (Integer) sd.maxt.getValue();
-            Config.THREADS = (Integer) sd.threads.getValue();
-
-            /* intervene for the Cartan-Eilenberg option */
-            if(sd.algcombo.getSelectedItem() == SettingsDialog.ALGCE) {
-//                startCE();
-                return;
-            }
+//            String s;
+//            sd = new SettingsDialog();
+//            sd.setVisible(true); /* blocks until dialog has completed */
+//
+//            if(sd.cancelled)
+//                System.exit(0);
+////
+////            /* prime */
+////            Config.P = (Integer) sd.prime.getSelectedItem();
+////            Config.Q = 2 * (Config.P - 1);
+////            Config.yscale = Config.Q;
+////            Config.T_CAP = (Integer) sd.maxt.getValue();
+////            Config.THREADS = (Integer) sd.threads.getValue();
+////
+////            /* intervene for the Cartan-Eilenberg option */
+////            if(sd.algcombo.getSelectedItem() == SettingsDialog.ALGCE) {
+//////                startCE();
+////                return;
+////            }
 
             /* module */
 //            GradedAlgebra<Sq> steen = null;

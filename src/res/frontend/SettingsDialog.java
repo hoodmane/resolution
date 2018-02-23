@@ -42,6 +42,8 @@ public class SettingsDialog extends JDialog
     public JSpinner maxt;
     public JSpinner threads;
 
+    
+    public int T_max;
     public boolean cancelled = true;
 
 
@@ -80,7 +82,7 @@ public class SettingsDialog extends JDialog
         b_prime.add(prime);
 
         Box b_maxt = Box.createHorizontalBox();
-        maxt = new JSpinner(new SpinnerNumberModel(Config.T_CAP, 1, 10000, 1));
+        maxt = new JSpinner(new SpinnerNumberModel(T_max, 1, 10000, 1));
         b_maxt.add(new JLabel("Max t:"));
         b_maxt.add(maxt);
         b_maxt.add(Box.createHorizontalGlue());

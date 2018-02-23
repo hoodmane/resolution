@@ -7,8 +7,12 @@ import java.util.*;
 public class EvenSteenrodAlgebra extends SteenrodAlgebra
 {
 
+    private final int p;
+    private final int q;
     public EvenSteenrodAlgebra(int p) {
         super(p);
+        this.p = p;
+        this.q = 2*p-2;
     }
     /*
      * Returns all partitions of <n> into P-admissible sequences of largest entry at most <max>.
@@ -27,9 +31,9 @@ public class EvenSteenrodAlgebra extends SteenrodAlgebra
 
         Collection<int[]> ret = new ArrayList<>();
 
-        for(int i = n * (Config.P-1) / (Config.P * Config.Q) * Config.Q; i <= max; i += Config.Q) {
+        for(int i = n * (p-1) / (p * q) * q; i <= max; i += q) {
             /* try P^i */
-            for(int[] q0 : part_p(n-i, i/Config.P)) {
+            for(int[] q0 : part_p(n-i, i/p)) {
                 int[] q1 = new int[q0.length + 1];
                 q1[0] = i;
                 for(int j = 0; j < q0.length; j++)
@@ -39,7 +43,7 @@ public class EvenSteenrodAlgebra extends SteenrodAlgebra
             /* try BP^i */
             /* We are even steenrod so no betas
             if(i+1 > max) break;
-            for(int[] q0 : part_p(n-(i+1), (i+1)/Config.P)) {
+            for(int[] q0 : part_p(n-(i+1), (i+1)/p)) {
                 int[] q1 = new int[q0.length + 1];
                 q1[0] = i+1;
                 for(int j = 0; j < q0.length; j++)

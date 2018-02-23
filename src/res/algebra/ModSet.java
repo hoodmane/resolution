@@ -11,11 +11,11 @@ public class ModSet<T> extends TreeMap<T,Integer>
 
     public ModSet(int p) {
         this.p = p;
-        resmath = ResMath.get(p);
+        resmath = ResMath.getInstance(p);
     }
     public ModSet(int p, T t) {
         this.p = p;
-        resmath = ResMath.get(p);
+        resmath = ResMath.getInstance(p);
         add(t,1);
     }
 
@@ -43,7 +43,7 @@ public class ModSet<T> extends TreeMap<T,Integer>
 
     public ModSet<T> scaled(int scale)
     {
-        ModSet<T> ret = new ModSet<>(this.p);
+        ModSet<T> ret = new ModSet<>(p);
         entrySet().forEach((e) -> {
             ret.add(e.getKey(), e.getValue() * scale);
         });
@@ -60,7 +60,7 @@ public class ModSet<T> extends TreeMap<T,Integer>
 
     public boolean contains(T d)
     {
-        return (getsafe(d) % Config.P != 0);
+        return (getsafe(d) % p != 0);
     }
 
     public void union(ModSet<T> s)

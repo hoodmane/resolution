@@ -5,6 +5,7 @@ import java.util.*;
 public class AnModuleWrapper extends GradedModule<AnElement>
 {
     private final int p;
+    private final AlgebraFactory factory;
     GradedModule<Sq> base;
     
     Map<Dot<Sq>,Dot<AnElement>> dmap = new TreeMap<>();
@@ -14,6 +15,7 @@ public class AnModuleWrapper extends GradedModule<AnElement>
     {
         this.base = base;
         this.p = base.getP();
+        this.factory = AlgebraFactory.getInstance(p);
     }
 
     @Override public Iterable<Dot<AnElement>> basis(int deg)
@@ -27,7 +29,7 @@ public class AnModuleWrapper extends GradedModule<AnElement>
     @Override public DModSet<AnElement> act(Dot<AnElement> o, AnElement elt)
     {
         Dot<Sq> under = rmap.get(o);
-        DModSet<AnElement> ret = new DModSet<>(p);
+        DModSet<AnElement> ret = factory.DModSet();
 
         elt.modset.entrySet().forEach((sqe) -> {
             DModSet<Sq> prod = base.act(under, sqe.getKey());
@@ -46,7 +48,7 @@ public class AnModuleWrapper extends GradedModule<AnElement>
         if(ret != null) return ret;
 
         Generator<AnElement> gen = new Generator<>(p,in.deg, gencount++);
-        ret = new Dot<>(gen, AnElement.UNIT(p));
+        ret = new Dot<>(gen, factory.AnUNIT);
         dmap.put(in,ret);
         rmap.put(ret,in);
         return ret;

@@ -19,6 +19,7 @@ public class BrunerBackend<T extends GradedElement<T>>
 {
 
     private final int p;
+    private int T_max;
     private final ResMath resmath;
     private final AlgebraFactory factory;
     private final GradedAlgebra<T> alg;
@@ -34,7 +35,7 @@ public class BrunerBackend<T extends GradedElement<T>>
     private CompoundDecorated<Generator<T>, MultigradedAlgebra<Generator<T>>> dec;
     
     public boolean isDone(){
-         return computedStems - 1 == Config.T_CAP;
+         return computedStems - 1 == T_max;
     }
     
     private final Set<Callback> doneCallbacks = new HashSet<>();
@@ -50,13 +51,14 @@ public class BrunerBackend<T extends GradedElement<T>>
         return totalGens;
     }
 
-    public BrunerBackend(GradedAlgebra<T> alg,GradedModule<T> m) {
+    public BrunerBackend(GradedAlgebra<T> alg,GradedModule<T> m,int T_max) {
         this.alg = alg;
         this.module = m;
+        this.T_max = T_max;
         dec = new CompoundDecorated<>(this);
         this.p = m.getP();
-        resmath = ResMath.get(p);
-        factory = AlgebraFactory.get(p);
+        resmath = ResMath.getInstance(p);
+        factory = AlgebraFactory.getInstance(p);
 
 //        Collection<DifferentialRule> diffrules = new ArrayList<DifferentialRule>();
 //        diffrules.add(new DifferentialRule(new int[] {2,1,1}, new int[] {1,1,0}, Color.green));
@@ -282,7 +284,7 @@ public class BrunerBackend<T extends GradedElement<T>>
 
             for(Generator<T> g : gens(s,gt)) {
                 for(T q : alg.basis(t-gt)) {
-                    DModSet<T> x = new DModSet<>(p,new Dot<>(g,q));
+                    DModSet<T> x = factory.DModSet(new Dot<>(g,q));
                     /* compute the image */
                     DModSet<T> dx;
                     if(s > 0) dx = g.img.times(q, alg);
@@ -480,6 +482,11 @@ public class BrunerBackend<T extends GradedElement<T>>
     
     double xscale,yscale;
 
+    @Override
+    public int getTMax() {
+        return T_max;
+    }
+
 }
 
 class BrunerResTaskThread extends Thread
@@ -505,7 +512,7 @@ class BrunerResTaskThread extends Thread
             }
             if(Config.DEBUG_THREADS) System.out.println(id + ": got task ...");
 
-            if(t.t > Config.T_CAP)
+            if(t.t > back.getTMax())
                 continue;
 
             switch(t.type) {
