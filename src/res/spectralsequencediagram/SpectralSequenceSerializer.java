@@ -13,7 +13,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import res.Config;
 import static res.algebra.MultigradedVectorSpace.*;
 import res.algebra.PingListener;
 import res.spectralsequencediagram.SseqClassSerializer.DeserializedSseqClass;

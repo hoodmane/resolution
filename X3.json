@@ -1,1 +1,0 @@
-{"prime" : 3, "generators" : {"x0" : 0, "x1" : 4, "x2" : 8}, "relations" : ["P1(x0) = 1 x1", "P2(x0) = 1 x2", "P1(x1) = 2 x2"], "T_max" : 50, "pdf_output" : "X3.pdf", "json_output" : "X3-out.json"}

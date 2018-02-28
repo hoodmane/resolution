@@ -1,0 +1,135 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package res.frontend;
+
+import java.awt.BasicStroke;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Map;
+import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.freehep.graphics2d.VectorGraphics;
+import org.freehep.graphicsio.pdf.PDFGraphics2D;
+import static res.frontend.SpectralSequenceDisplay.PAGE_WIDTH;
+import res.spectralsequencediagram.DisplaySettings;
+import res.spectralsequencediagram.SpectralSequence;
+import res.spectralsequencediagram.SseqClass;
+
+/**
+ *
+ * @author Hood
+ */
+public class SpectralSequenceImageWriter extends SpectralSequenceDisplay{
+        /**
+     * 
+     * @param sseq The spectral sequence to draw
+     * @param settings
+     * @return A SpectralSequenceDisplay object. Use sseqDisplay.paint(vectorGraphics2D) to make 
+     */
+
+    @Override
+    int getMinX(){
+        return 0;
+    }
+    
+    @Override
+    int getMinY(){
+        return 0;
+    }
+    
+    @Override
+    int getMaxX(){
+        return T_max;
+    }
+    
+    @Override
+    int getMaxY(){
+        return 20;
+    }
+    
+    private Map<SseqClass,Point2D> pos;
+        
+    public SpectralSequenceImageWriter constructSpectralSequenceImageWriter(SpectralSequence sseq, DisplaySettings settings){
+        return (SpectralSequenceImageWriter) SpectralSequenceDisplay.constructFrontend(sseq, settings);
+    }
+    
+    public SpectralSequenceImageWriter(SpectralSequence sseq, DisplaySettings settings) {
+        super(sseq, settings);
+        this.windowOpened(null);
+    }
+    
+    public void drawAxesTicks(Graphics2D g){
+        AffineTransform inverse_scale = AffineTransform.getScaleInstance(inverseTransform.getScaleX(), inverseTransform.getScaleY());
+        Font theFont = g.getFont();
+        Font derivedFont = theFont.deriveFont(inverse_scale); 
+//        g.setFont(derivedFont);  
+        FontMetrics metrics = g.getFontMetrics(g.getFont());  
+//        g.transform(transform);   
+        g.draw(new Line2D.Double(0,0,200,100));
+        g.drawString("AAAAAAAAAAAA", 200, 100);
+    }
+    
+    class PDFGraphics2DCustomPageSize extends PDFGraphics2D {
+        
+        public PDFGraphics2DCustomPageSize(File file, Dimension size) throws FileNotFoundException {
+            super(file, size);
+        }
+        
+        protected Dimension getPageSize(){
+            return new Dimension(PAGE_WIDTH,PAGE_HEIGHT);
+        }
+        
+    }
+
+    public void writeToFile(String filename){
+        transform.setToIdentity();
+        transform.translate(10, 190);
+//        transform.scale(xscale * 10, - yscale * 5);
+        transform.scale(xscale * 5, - yscale *2.5);
+        transform.translate(3, -4);                      
+        updateTransform();
+        setGridStroke(new BasicStroke((float) 0.3));
+        setLineStroke(new BasicStroke((float) 0.8));
+        
+        Properties p = new Properties();
+        p.setProperty("PageSize","CUSTOM_PAGE_SIZE");
+        p.setProperty("CUSTOM_PAGE_SIZE",PAGE_WIDTH + "," + 10);
+        VectorGraphics g; 
+        try {
+            g = new PDFGraphics2D(new File("Output.pdf"), new Dimension(PAGE_WIDTH,PAGE_HEIGHT));
+            g.setFont(new Font("Computer Modern",Font.PLAIN,8));
+            g.setProperties(p); 
+            g.startExport(); 
+            paintPDF(g); 
+            g.endExport();               
+            System.out.println(filename);
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(SpectralSequenceImageWriter.class.getName()).log(Level.SEVERE, null, ex);
+        }
+     
+////        drawAxesTicks(vg2d);
+//        CommandSequence commands = ((VectorGraphics2D) vg2d).getCommands();
+////        EPSProcessor epsProcessor = new EPSProcessor();
+////        Document doc = epsProcessor.getDocument(commands, new PageSize(PAGE_WIDTH,PAGE_HEIGHT )); // Screens have a 16 : 9 aspect ratio
+//        PDFProcessor pdfProcessor = new PDFProcessor(false);
+//        Document doc = pdfProcessor.getDocument(commands, new PageSize(PAGE_WIDTH,PAGE_HEIGHT )); // Screens have a 16 : 9 aspect ratio
+//        try(FileOutputStream fileOutputStream = new FileOutputStream("tex/test1.pdf")){
+//            doc.writeTo(fileOutputStream);
+//            fileOutputStream.close();
+//            System.out.println(filename);
+//        } catch (IOException ex) {
+//            Logger.getLogger(SpectralSequenceImageWriter.class.getName()).log(Level.SEVERE, null, ex);
+//        } 
+    }
+}

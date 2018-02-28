@@ -37,7 +37,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     AffineTransform inverseTransform = new AffineTransform();
     
     
-    private final static Map<Integer,Color> STATE_COLORS = new HashMap();
+    final static Map<Integer,Color> STATE_COLORS = new HashMap();
     static {
         STATE_COLORS.put(MultigradedVectorSpace.STATE_NOT_COMPUTED,Color.black);
         STATE_COLORS.put(MultigradedVectorSpace.STATE_STARTED,Color.darkGray);
@@ -54,11 +54,15 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     int[] maxfilt;
     int T_max;
     
-    private final double scale_aspect_ratio; 
-    private final double scale_aspect_ratio_log;
+    final double scale_aspect_ratio; 
+    final double scale_aspect_ratio_log;
     double zoom = 0;
     // Derived in updateOffsets():
     double scale, xscale, yscale;  
+    private int xtickstep;
+    private int ytickstep;
+    private int xgridstep;
+    private int ygridstep;
     
     // selected x, selected y. Initialize to a large negative value representing "no selection".
     int selx = -10000;
@@ -66,13 +70,15 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     int mousex = -1;
     int mousey = -1;    
     
+    private Stroke gridStroke = new BasicStroke();
+    private Stroke lineStroke = new BasicStroke();
+    
     JFrame frame;
     JTextArea textarea;
 
     public static SpectralSequenceDisplay constructFrontend(SpectralSequence sseq,DisplaySettings settings) 
     {
         SpectralSequenceDisplay d = new SpectralSequenceDisplay(sseq,settings);
-        d.T_max = settings.T_max;
         d.frame = new JFrame("Resolution");
         d.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         d.frame.setSize(DEFAULT_WINDOW_WIDTH,DEFAULT_WINDOW_HEIGHT);        
@@ -94,9 +100,11 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         yscale = settings.getYScale();
         scale_aspect_ratio = yscale/xscale;
         scale_aspect_ratio_log = Math.log(scale_aspect_ratio)/Math.log(ZOOM_BASE);
+        this.T_max = settings.T_max;        
         this.zoom = Math.log(xscale)/Math.log(ZOOM_BASE);        
         this.sseq = sseq;
         this.setupGradings();
+        updateTransform();
     }
     
     private void setupGradings()
@@ -128,6 +136,14 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         scale = Math.pow(ZOOM_BASE,zoom);
         xscale = scale;
         yscale = scale * scale_aspect_ratio;
+        xtickstep = 5;
+        ytickstep = 5;
+        
+        for(double i = -zoom; i > 0; i -= TICK_STEP_LOG_BASE) xtickstep *= 2;
+        for(double i = (-zoom - scale_aspect_ratio_log); i > 0; i -= TICK_STEP_LOG_BASE ) ytickstep *= 2;
+        
+        xgridstep = (xtickstep / 10 == 0) ? 1 : xtickstep / 10 ;
+        ygridstep = (ytickstep / 10 == 0) ? 1 : ytickstep / 10 ;        
         try {
             inverseTransform = transform.createInverse();
         } catch (NoninvertibleTransformException ex) {
@@ -141,11 +157,11 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
      * @param x chart coordinate
      * @return screen coordinate
      */
-    private double getScreenX(double sx) {
+    double getScreenX(double sx) {
         Point2D.Double p = new Point2D.Double(sx,0);
         return transform.transform(p,p).getX();
     }
-    private double getScreenY(double sy) {
+    double getScreenY(double sy) {
         Point2D.Double p = new Point2D.Double(0,sy);
         return transform.transform(p,p).getY();
     }
@@ -157,12 +173,12 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
      * @param cx screen coordinate
      * @return chart coordinate
      */
-    private double getChartX(double cx) {
+    double getChartX(double cx) {
         Point2D.Double p = new Point2D.Double(cx,0);
         return inverseTransform.transform(p,p).getX();
     }
     
-    private double getChartY(double cy) {
+    double getChartY(double cy) {
         Point2D.Double p = new Point2D.Double(0,cy);
         try {
             return transform.inverseTransform(p,p).getY();
@@ -171,7 +187,32 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
             return 0;
         }
     }
+    
+    int getMinX(){
+        int min_x_visible = (int) getChartX(-3*transform.getScaleX());
+        return ( min_x_visible < 0 ) ? 0 : min_x_visible;
+    }
+    
+    int getMinY(){
+        int min_y_visible = (int) getChartY((getHeight() - 3*transform.getScaleY()));
+        return ( min_y_visible < 0 ) ? 0 : min_y_visible;
+    }
+    
+    int getMaxX(){
+        return (int) getChartX(getWidth() + 3*transform.getScaleX()) + 10;
+    }
+    
+    int getMaxY(){
+        return (int) getChartY(3*transform.getScaleY()) + 10;
+    }
 
+    void setGridStroke(Stroke s){
+        this.gridStroke = s;
+    }
+
+    void setLineStroke(Stroke s){
+        this.lineStroke = s;
+    }
     
     @Override public void mouseClicked(MouseEvent evt)
     {
@@ -220,7 +261,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     }
     
     
-    private boolean isVisible(SseqClass d)
+    boolean isVisible(SseqClass d)
     {
         int[] deg = d.getDegree();
         for(int i = 2; i < minfilt.length; i++)
@@ -229,7 +270,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         return true; //dec.isVisible(d);
     }
 
-    private int[] multideg(int x, int y)
+    int[] multideg(int x, int y)
     {
         return new int[] {y,x+y};
     }
@@ -246,26 +287,41 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     @Override public void paintComponent(Graphics graphics)
     {
         super.paintComponent(graphics);
-        paintComponentHelper(graphics,transform,inverseTransform);
+        paintComponentHelper(graphics,transform);
+        Graphics2D g = (Graphics2D) graphics;
+        /* draw axes */
+        int bmy = getHeight() - MARGIN_WIDTH;
+        g.setColor(getBackground());
+        g.fillRect(0, 0, MARGIN_WIDTH, getHeight());
+        g.fillRect(0, bmy, getWidth(), MARGIN_WIDTH);
+        g.setColor(Color.gray);
+        g.drawLine(MARGIN_WIDTH, 0, MARGIN_WIDTH, bmy);
+        g.drawLine(MARGIN_WIDTH, bmy, getWidth(), bmy);
+        
+        g.setColor(Color.black);
+        FontMetrics metrics = g.getFontMetrics(g.getFont());  
+        int max_x_visible = getMaxX();
+        int max_y_visible = getMaxY();
+        for(int x = 0; x <= max_x_visible; x += xtickstep) {
+            Rectangle2D r = metrics.getStringBounds(String.valueOf(x), g);  
+            g.drawString(String.valueOf(x),(float) (getScreenX(x+ 0.5)-r.getWidth()/2), (float) (getHeight() - MARGIN_WIDTH/2  + r.getHeight()/2));
+        }
+        for(int y = 0; y <= max_y_visible; y += ytickstep) {
+            Rectangle2D r = metrics.getStringBounds(String.valueOf(y), g);  
+            g.drawString(String.valueOf(y), (float) (MARGIN_WIDTH/2-r.getWidth()/2), (float)(getScreenY(y + 0.5) + r.getHeight()/2));
+        }        
     }
     
     /**
      * We want to also produce pdf output. There are two issues with just using the paintComponent() method
      * @param graphics 
-     * @param transform 
      */
-    public void paintPDF(Graphics graphics,AffineTransform transform){
-        try {
-            paintComponentHelper(graphics,transform,transform.createInverse());
-        } catch (NoninvertibleTransformException ex) {
-            Logger.getLogger(SpectralSequenceDisplay.class.getName()).log(Level.SEVERE, null, ex);
-        }
+    public void paintPDF(Graphics graphics){
+            paintComponentHelper(graphics,transform);
     }    
 
-    public void paintComponentHelper(Graphics graphics, AffineTransform transform, AffineTransform inverseTransform){
+    public void paintComponentHelper(Graphics graphics, AffineTransform transform){
         Graphics2D g = (Graphics2D) graphics;
-        double block_width = transform.getScaleX();
-        double block_height = transform.getScaleY();
         class DrawingCommands {            
             private void drawLine(double x1,double y1,double x2,double y2){
                 g.draw(new Line2D.Double(x1, y1, x2, y2));
@@ -310,8 +366,10 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
                 g.fill(transform.createTransformedShape(new Rectangle2D.Double(x, y, 1, 1)));
             }            
             
+            final Color[] colors = new Color[] {Color.BLACK, Color.BLUE,Color.GREEN,Color.ORANGE};
+            
             private void drawClass(SseqClass c){
-                g.setColor(Color.black);
+                g.setColor(c.getColor(0));
                 AffineTransform saveTransform = g.getTransform();
                 Point2D p = pos.get(c);
                 if(p==null){
@@ -326,32 +384,19 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         DrawingCommands drawHelpers = new DrawingCommands();
 
         /* calculate visible region */
-        int min_x_visible = (int) getChartX(-3*block_width);
-        int min_y_visible = (int) getChartY((getHeight() - 3*block_height));
-        if(min_x_visible < 0) min_x_visible = 0;
-        if(min_y_visible < 0) min_y_visible = 0;
-        int max_x_visible = (int) getChartX(getWidth() + 3*block_width);
-        int max_y_visible = (int) getChartY(3*block_height);
+        int min_x_visible = getMinX();
+        int min_y_visible = getMinY();
+        int max_x_visible = getMaxX();
+        int max_y_visible = getMaxY();
         
        
         /* draw grid  -- this needs to go first so that the uncomputed region is correctly blacked out 
          * (it looks ugly to have a light gray grid on a black background).
          */
-        int xtickstep = 5;
-        int ytickstep = 5;
-        
-        for(double i = -zoom; i > 0; i -= TICK_STEP_LOG_BASE) xtickstep *= 2;
-        for(double i = (-zoom - scale_aspect_ratio_log); i > 0; i -= TICK_STEP_LOG_BASE ) ytickstep *= 2;
-        
-        int xgridstep = (xtickstep / 10 == 0) ? 1 : xtickstep / 10 ;
-        int ygridstep = (ytickstep / 10 == 0) ? 1 : ytickstep / 10 ;
-        
-        AffineTransform inverse_scale = AffineTransform.getScaleInstance(inverseTransform.getScaleX(), inverseTransform.getScaleY());
-        Font theFont = g.getFont();
-        Font derivedFont = theFont.deriveFont(inverse_scale); 
-        g.setFont(derivedFont);  
+        g.setStroke(gridStroke);
         FontMetrics metrics = g.getFontMetrics(g.getFont());  
-        
+        AffineTransform tempTransform = new AffineTransform();
+        Point2D tempPoint = new Point2D.Double();
         for(int x = 0; x <= max_x_visible; x += xgridstep) {
             g.setColor(Color.lightGray);
             /* Offset x component by xgridstep/2 in order to keep dots centered in grid. */
@@ -359,11 +404,11 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
             g.setColor(Color.black);
             if(x % xtickstep == 0) {
                 Rectangle2D r = metrics.getStringBounds(String.valueOf(x), g);                                      
-                g.translate(0,TICK_GAP);
-                g.translate(-r.getWidth()/2,0);
-                g.transform(transform);                
-                g.drawString(String.valueOf(x), (float)(x + 0.5),0);
-                g.setTransform(ID_TRANSFORM);                
+                tempTransform.setToTranslation(-r.getWidth()/2,TICK_GAP);
+                tempTransform.concatenate(transform);
+                tempPoint.setLocation(x+0.5, 0);
+                tempTransform.transform(tempPoint, tempPoint);
+                g.drawString(String.valueOf(x), (float) tempPoint.getX(), (float) tempPoint.getY());           
             }
         }
         for(int y = 0; y <= max_y_visible; y += ygridstep) {        
@@ -373,16 +418,15 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
             g.setColor(Color.black);  
             if(y % ytickstep == 0){
                 Rectangle2D r = metrics.getStringBounds(String.valueOf(y), g);                  
-                g.translate(-TICK_GAP,0);
-                g.translate(0,r.getHeight()/2);
-                g.transform(transform);                
-                g.drawString(String.valueOf(y), (float)(0),(float) (y+0.5));
-                g.setTransform(ID_TRANSFORM);
+                tempTransform.setToTranslation(-TICK_GAP,r.getHeight()/2);
+                tempTransform.concatenate(transform);
+                tempPoint.setLocation(0, y+0.5);
+                tempTransform.transform(tempPoint, tempPoint);
+                g.drawString(String.valueOf(y), (float) tempPoint.getX(), (float) tempPoint.getY());                 
             }
         }    
-        g.setFont(theFont);
-        g.setTransform(ID_TRANSFORM);        
-        
+
+        g.setStroke(lineStroke);
         /* assign classes a location; at this point we definitively decide what's visible */
         Set<SseqClass> frameVisibles = new HashSet<>();
         pos = new HashMap<>();
@@ -393,7 +437,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
                 cellColor = STATE_COLORS.get(cellState);
                 
                 if(cellColor!=transparent){
-//                    drawHelpers.shadeChartCell(cellColor,x,y);                
+                    drawHelpers.shadeChartCell(cellColor,x,y);                
                 }
 
                 if(!(cellState == MultigradedVectorSpace.STATE_PARTIAL || cellState == MultigradedVectorSpace.STATE_DONE)){
@@ -401,7 +445,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
                 }
                 
                 Collection<SseqClass> classes = sseq.getClasses(multideg(x,y));
-
+//                System.out.println("classes: " + sseq.getClasses(multideg(15,1)).size());
                 int visible;
                 synchronized(classes) {
                     visible = (int) classes.stream().filter((d) -> (isVisible(d))).map((d) -> {
@@ -419,7 +463,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
                 }
             }
         }
-//        g.fill(transform.createTransformedShape(new Rectangle.Double(T_max + 1,min_y_visible,max_x_visible,max_y_visible)));
+        g.fill(transform.createTransformedShape(new Rectangle.Double(T_max + 1,min_y_visible,max_x_visible,max_y_visible)));
         drawHelpers.shadeChartCell(Color.orange,selx,sely);
 
         /* draw decorations */
@@ -440,24 +484,6 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         frameVisibles.forEach((c) -> 
             drawHelpers.drawClass(c)
         );
-
-        /* draw axes */
-        int bmy = getHeight() - MARGIN_WIDTH;
-        g.setColor(getBackground());
-        g.fillRect(0, 0, MARGIN_WIDTH, getHeight());
-        g.fillRect(0, bmy, getWidth(), MARGIN_WIDTH);
-        g.setColor(Color.gray);
-        g.drawLine(MARGIN_WIDTH, 0, MARGIN_WIDTH, bmy);
-        g.drawLine(MARGIN_WIDTH, bmy, getWidth(), bmy);
-        g.setColor(Color.black);
-        for(int x = 0; x <= max_x_visible; x += xtickstep) {
-            Rectangle2D r = metrics.getStringBounds(String.valueOf(x), g);  
-            g.drawString(String.valueOf(x),(float) (getScreenX(x+ 0.5)-r.getWidth()/2), (float) (getHeight() - MARGIN_WIDTH/2  + r.getHeight()/2));
-        }
-        for(int y = 0; y <= max_y_visible; y += ytickstep) {
-            Rectangle2D r = metrics.getStringBounds(String.valueOf(y), g);  
-            g.drawString(String.valueOf(y), (float) (MARGIN_WIDTH/2-r.getWidth()/2), (float)(getScreenY(y + 0.5) + r.getHeight()/2));
-        }
 
     }
 

@@ -15,9 +15,11 @@ public class ExportSpectralSequenceToTex {
     private final StringBuilder structlines;
     private final StringBuilder output;
     
-    private final String texHead = "\\documentclass{spectralsequence-example}\n\\begin{document}\n\\begin{sseqpage}\n";
+    private final String texHead = "\\documentclass{spectralsequence-example}\n\\makeatletter\n\\begin{document}\n";
+    private final String beginSseqpage = "\\begin{sseqpage}[scale to fit width =\\textwidth-10pt,scale to fit height=\\textheight-10pt]\n";
     private final String texFoot = "\\end{sseqpage}\n\\end{document}\n";
-    
+    static String[] colorStrings = new String[] 
+        {"cblack", "cred", "cgreen", "cblue", "corange","cpurple","ccyan","cmagenta","clime","cpink","cteal","clavender","cbrown","cbeige","cmaroon" };
     SpectralSequence sseq;
     
     public ExportSpectralSequenceToTex(SpectralSequence sseq){
@@ -36,6 +38,7 @@ public class ExportSpectralSequenceToTex {
             }
         }
         output.append(texHead);
+        output.append(beginSseqpage);
         output.append(this.classes);
         output.append(this.structlines);
         output.append(texFoot);
@@ -43,11 +46,10 @@ public class ExportSpectralSequenceToTex {
     
     public void writeToFile(String filename){
         try (FileWriter fileWriter = new FileWriter(new File(filename))) {
-            System.out.println(filename);
             fileWriter.write(this.toString());
             fileWriter.flush();
             fileWriter.close();
-            System.out.println("closed file");
+            System.out.println(filename);
         } catch(IOException e) {
             System.out.println("error");
         }
@@ -56,11 +58,11 @@ public class ExportSpectralSequenceToTex {
     private void addClass(SseqClass g){
         int x = g.getDegree()[0];
         int y = g.getDegree()[1];
-        classes.append(String.format("\\class[name=%s](%d,%d)\n", g.getName(),y-x,x));
+        classes.append(String.format("\\sseq@qclassnamed[\\sseq@qcolor{%s}](%d,%d){%s}\n",colorStrings[(y-x)%8], y-x,x,g.getName()));
     }
     
     private void addStructline(Structline sl){
-        structlines.append(String.format("\\structline(%s)(%s)\n", sl.getSource().getName(),sl.getTarget().getName()));
+        structlines.append(String.format("\\sseq@qstructlinenamed(%s)(%s)\n", sl.getSource().getName(),sl.getTarget().getName()));
     }
     
     @Override

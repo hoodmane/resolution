@@ -94,6 +94,8 @@ public class JSONModule extends GradedModule<Sq> {
             gensEntry.add(d);
             actions.put(d,new TreeMap<>());
         }
+        
+        VectorEvaluator evaluator = new VectorEvaluator(generators);
     
         for(final ListIterator<String> it = relations.listIterator(); it.hasNext();){
             String rel = it.next();
@@ -162,49 +164,20 @@ public class JSONModule extends GradedModule<Sq> {
                  throw new ParseException("Unknown variable \"" + inputVariableName + "\" in " + relationInfo,1);
              Dot<Sq> inputVariable = variableMap.get(LHSmatcher.group(3));
              int inputVariableDegree = inputVariable.deg[1];
-             DModSet<Sq> outputSet = new DModSet<>(p);
-             // Convert + into +- so that - is part of coefficient. Split on plus.
-             for(String term : RHS.replace("-","+-").split("\\+")){
-                 term = term.trim();
-                 if(term.isEmpty()){ continue;} // This handles expressions that start with - and also ++.
-                 Matcher termMatcher = TERMPAT.matcher(term);
-                 if(!termMatcher.find()){
-                    throw new ParseException("Invalid term " + term + " in " + relationInfo,0);
-                 }
-                 String ceofficientSring = termMatcher.group(1);
-                 String termVariableName = termMatcher.group(2);
-                 
-                 int coeff;
-                 try {
-                    if(ceofficientSring.isEmpty()){
-                        coeff = 1;
-                    } else if("-".equals(ceofficientSring.trim())){
-                        coeff = -1;
-                    } else {
-                        coeff = Integer.parseInt(ceofficientSring.replace(" ",""));  
-                    }
-                 } catch (NumberFormatException e) {
-                    throw new ParseException("Invalid coefficient \"" + ceofficientSring + "\" in term \"" + term + "\" of " + relationInfo,0);
-                 }
-                 
-                 if(!variableMap.containsKey(termVariableName ))
-                     throw new ParseException("Unknown variable \"" + termVariableName + "\" in " + relationInfo,1);
-                 Dot<Sq> termVariable = variableMap.get(termMatcher.group(2));
-                 int termVariableDegree = termVariable.deg[1];
-                 if(termVariableDegree != inputVariableDegree + operatorDegree){
-                     throw new ParseException(String.format(
-                        "Variable \"%s\" in " + relationInfo + " has the wrong degree. |%s| = %d, but |%s| + |%s| = %d",
-                        termVariableName, termVariableName, termVariableDegree, operatorName, inputVariableName, operatorDegree + inputVariableDegree
-                     ),1);
-                 }
-                 
-                 // Maybe the user used the same variable more than once. If so, combine like terms.
-                 if(outputSet.get(termVariable)!=null){
-                    coeff += outputSet.get(termVariable);
-                 }
-                 outputSet.put(termVariable,coeff);
-             }
-	     actions.get(inputVariable).put(operatorDegree,outputSet);
+             
+            VectorEvaluator.VectorEvaluationContext evaluationContext = new VectorEvaluator.VectorEvaluationContext()
+                    .setDegree(inputVariableDegree + operatorDegree)
+                    .setLHSGenerator(inputVariableName)
+                    .setLHSOperator(operatorType)
+                    .setRelationInfo(relationInfo);
+            // Convert + into +- so that - is part of coefficient.
+            RHS = RHS.replace("-","+-");
+            Map<String, Integer> vector = evaluator.evaluate(RHS,evaluationContext).getVector();
+            DModSet<Sq> outputSet = new DModSet<>(p);
+            for(Map.Entry<String, Integer> e : vector.entrySet()){
+                outputSet.add(variableMap.get(e.getKey()),e.getValue());
+            }
+            actions.get(inputVariable).put(operatorDegree,outputSet);
         }
     }
  

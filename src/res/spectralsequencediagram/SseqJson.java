@@ -17,7 +17,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 public class SseqJson {
-    private String json;
+    private JsonObject sseq,display;
+    private String jsonString;
     
     public static final Gson GSON = new GsonBuilder()
         .registerTypeHierarchyAdapter(SpectralSequence.class, new SpectralSequenceSerializer())
@@ -28,11 +29,18 @@ public class SseqJson {
     
     /**
      * @param sseq The spectral sequence to serialize
+     * @param settings
      * @return SpectralSequenceJson object containing the Json representation of the input spectral sequence
      */
-    public static SseqJson ExportSseq(SpectralSequence sseq){
+    public static SseqJson ExportSseq(SpectralSequence sseq, DisplaySettings settings){
         SseqJson s = new SseqJson();
-        s.json = GSON.toJson(sseq);
+        s.sseq = (JsonObject) GSON.toJsonTree(sseq);
+        s.display = (JsonObject) GSON.toJsonTree(settings,DisplaySettings.class);
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.entrySet().forEach((e) -> {
+            s.sseq.add(e.getKey(),e.getValue());
+        });
+        s.jsonString = jsonObject.toString();
         return s;
     }
     
@@ -57,7 +65,7 @@ public class SseqJson {
      */
     @Override
     public String toString(){
-        return json;
+        return jsonString;
     }
     
     /**

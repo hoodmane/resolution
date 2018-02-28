@@ -1,4 +1,5 @@
 package res.algebra;
+import java.awt.Color;
 import java.awt.Shape;
 import java.awt.geom.Ellipse2D;
 import java.util.Collection;
@@ -15,6 +16,19 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
     public String extraInfo = "";
     private Collection<Structline> structlines;
     private StructlineProducer structlineGetter;
+    private Color color = Color.BLACK;
+
+    @Override
+    public Color getColor(int page) {
+//        System.out.println("getting color");
+        return this.color;
+    }
+    
+    @Override
+    public void setColor(int page,Color color) {
+//        System.out.println("setting color");
+        this.color = color;
+    }    
     
     public static interface StructlineProducer {
         Collection<Structline> get();

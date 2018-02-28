@@ -4,6 +4,7 @@
  * and open the template in the editor.
  */
 package res.spectralsequencediagram;
+import java.awt.Color;
 import java.awt.Shape;
 import java.util.Collection;
 
@@ -19,6 +20,8 @@ public interface SseqClass {
     int getDeathPage();
     
     Shape getShape(int page);
+    Color getColor(int page);
+    void setColor(int page,Color color);
     String extraInfo();
     String getName();
     

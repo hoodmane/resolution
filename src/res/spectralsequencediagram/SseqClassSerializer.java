@@ -6,6 +6,7 @@
 package res.spectralsequencediagram;
 
 import com.google.gson.*;
+import java.awt.Color;
 import java.awt.Shape;
 import java.awt.geom.Ellipse2D;
 import java.lang.reflect.Type;
@@ -78,6 +79,16 @@ public class SseqClassSerializer implements JsonSerializer<SseqClass>{
         @Override
         public String getName() {
             return name;
+        }
+
+        @Override
+        public Color getColor(int page) {
+            return Color.BLACK;
+        }
+
+        @Override
+        public void setColor(int page, Color color) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
         
     }

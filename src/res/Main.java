@@ -19,6 +19,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import res.spectralsequencediagram.BackendWrapperSseq;
 import res.spectralsequencediagram.DisplaySettings;
 import res.spectralsequencediagram.SpectralSequence;
 import res.spectralsequencediagram.SseqJson;
@@ -43,7 +44,7 @@ public class Main {
 	System.exit(1);
     }
 
-    private static final Pattern A_N_ALGNAME_PAT = Pattern.compile("\\s*A\\(?\\s*(\\d*)\\s*\\)?\\s*$");
+
     static SettingsDialog sd;
     
     public static void main(String[] args)
@@ -68,12 +69,16 @@ public class Main {
     }
     
     static void displaySpectralSequence(JsonElement json){
+        DisplaySettings fromJson = SseqJson.GSON.fromJson(json, DisplaySettings.class);
+        ((JsonObject) json).entrySet().forEach(e -> System.out.println(e.getKey() +" : " + e.getValue()));
+        System.out.println("ysc: " +         fromJson.getYScale());
         SpectralSequenceDisplay.constructFrontend(
             SseqJson.GSON.fromJson(json,SpectralSequence.class),
             SseqJson.GSON.fromJson(json, DisplaySettings.class)
         ).start();
     }
     
+    private static final Pattern A_N_ALGNAME_PAT = Pattern.compile("\\s*A\\(?\\s*(\\d*)\\s*\\)?\\s*$");
     static void resolveJsonModule(JsonElement json){
         JsonSpecification spec = JsonSpecification.loadJson(json);
         spec.json = json;
@@ -130,31 +135,32 @@ public class Main {
         JsonElement json = spec.json;
         /* backend */
         BrunerBackend<T> back = new BrunerBackend<>(alg,mod,spec.T_max);
+        SpectralSequence sseq = new BackendWrapperSseq(back,spec.p);
         DisplaySettings settings = SseqJson.GSON.fromJson(json,DisplaySettings.class);
         SpectralSequenceDisplay display = 
             SpectralSequenceDisplay.constructFrontend(
-                back, settings
+                sseq, settings
             ).start();
         if(spec.tex_output!=null){
-            back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(back).writeToFile("tex/"+spec.tex_output);});
+            back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(sseq).writeToFile("out/"+spec.tex_output);});
         }
         
         if(spec.json_output!=null){
             back.registerDoneCallback(() -> {
                 try {
-                    SseqJson.ExportSseq(back).writeToFile("tex/"+spec.json_output);
+                    SseqJson.ExportSseq(sseq,settings).writeToFile("out/"+spec.json_output);
                 } catch (IOException ex) {
-                    System.out.println("Failed to write to tex/"+spec.json_output);
+                    System.out.println("Failed to write to out/"+spec.json_output);
 //                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
                 }
             });
         }
                 
-        if(spec.pdf_output!=null){
-            back.registerDoneCallback(() -> { 
-                new SpectralSequenceImageWriter(back,settings).writeToFile("tex/"+spec.pdf_output);
-            });
-        }        
+//        if(spec.pdf_output!=null){
+//            back.registerDoneCallback(() -> { 
+//                new SpectralSquencePgfWriter(back,settings).writeToFile("out/testa.tex");
+//            });
+//        }        
         
         /* off we go */
         back.start();

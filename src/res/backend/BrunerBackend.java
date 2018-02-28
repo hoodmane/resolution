@@ -15,7 +15,7 @@ import res.spectralsequencediagram.*;
 
 public class BrunerBackend<T extends GradedElement<T>>
     extends MultigradedAlgebra<Generator<T>>
-    implements Backend<Generator<T>, MultigradedAlgebra<Generator<T>>>, SpectralSequence
+    implements Backend<Generator<T>, MultigradedAlgebra<Generator<T>>>
 {
 
     private final int p;
@@ -454,38 +454,26 @@ public class BrunerBackend<T extends GradedElement<T>>
         return gens;
     }
 
-    @Override
-    public Collection<SseqClass> getClasses(int x, int y) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
 
     @Override
     public Collection<SseqClass> getClasses(int[] p) {
         // Just have to convince Java to regart our Collection of Generator<T> as a collection of SseqClass.
-        return ConvertCollection(gens(p).stream().map((g) -> g.setStructlines(ConvertCollection(dec.getStructlineDecorations(g)))));
+        return ConvertCollection(gens(p));
     }
 
     /**
      *
      * @return
      */
-    @Override
-    public Collection<Structline> getStructlines() {
-        return gens.stream().filter((g) -> g.getStructlines()!=null).flatMap((g) -> g.getStructlines().stream()).collect(Collectors.toList());
-    }
 
 
-    @Override
-    public int getState(int x, int y) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
     
     double xscale,yscale;
 
-    @Override
     public int getTMax() {
         return T_max;
     }
+
 
 }
 
