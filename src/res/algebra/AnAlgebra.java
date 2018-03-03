@@ -91,7 +91,7 @@ public class AnAlgebra implements GradedAlgebra<AnElement>
 
                         // add to basis if appropriate
                         if(! prod.isEmpty()) {
-                            ModSet<Sq> scaled = prod.scaled(resmath.inverse[highVal]);
+                            ModSet<Sq> scaled = prod.scaled(resmath.inverse(highVal));
                             AnElement elt = new AnElement(p,scaled,n);
                             ret.put(highKey, elt);
                             eltprod.add(elt,highVal);

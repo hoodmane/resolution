@@ -39,7 +39,7 @@ public class Matrices
             leading_cols[i] = j;
 
             /* normalize the row */
-            int inv = resmath.inverse[mat[i][j]];
+            int inv = resmath.inverse(mat[i][j]);
             for(int k = h; k < w; k++)
                 mat[i][k] = (mat[i][k] * inv) % P;
 

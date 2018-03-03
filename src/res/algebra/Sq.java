@@ -107,7 +107,7 @@ public class Sq implements GradedElement<Sq>
             /* apply Adem relation */
             for(int c = 0; c <= a/2; c++) {
 
-                if(! ResMath.binom_2(b - c - 1, a - 2*c))
+                if(resmath.binom(b - c - 1, a - 2*c) == 0)
                     continue;
 
                 int[] t;
@@ -167,13 +167,13 @@ public class Sq implements GradedElement<Sq>
 //                System.out.printf("adem: x=%d y=%d a=%d b=%d sign=%d\n", x, y, a, b, sign);
 
                 if(ry == 0)
-                    resolve_p_add_term(sign*resmath.binom_p(R*(b-c)-1,a-c*P  ), (a+b-c)*Q+rx, c*Q  , i, ret);
+                    resolve_p_add_term(sign*resmath.binom(R*(b-c)-1,a-c*P  ), (a+b-c)*Q+rx, c*Q  , i, ret);
                 else {
                     if(rx == 0) {
-                        resolve_p_add_term(sign*resmath.binom_p(R*(b-c)  ,a-c*P  ), (a+b-c)*Q+1, c*Q  , i, ret);
-                        resolve_p_add_term(-sign*resmath.binom_p(R*(b-c)-1,a-c*P-1), (a+b-c)*Q  , c*Q+1, i, ret);
+                        resolve_p_add_term(sign*resmath.binom(R*(b-c)  ,a-c*P  ), (a+b-c)*Q+1, c*Q  , i, ret);
+                        resolve_p_add_term(-sign*resmath.binom(R*(b-c)-1,a-c*P-1), (a+b-c)*Q  , c*Q+1, i, ret);
                     } else
-                        resolve_p_add_term(-sign*resmath.binom_p(R*(b-c)-1,a-c*P-1), (a+b-c)*Q+1, c*Q+1, i, ret);
+                        resolve_p_add_term(-sign*resmath.binom(R*(b-c)-1,a-c*P-1), (a+b-c)*Q+1, c*Q+1, i, ret);
                 }
             }
 
@@ -189,7 +189,7 @@ public class Sq implements GradedElement<Sq>
     {
 //        System.out.printf("adem_term: coeff=%d a=%d b=%d\n", coeff, a, b);
 
-        coeff = resmath.dmod(coeff);
+        coeff = resmath.positive_modp(coeff);
         if(coeff == 0) return; /* save some work... */
 
         int[] t;

@@ -46,10 +46,10 @@ public class DModSet<T extends GradedElement<T>> extends ModSet<Dot<T>>
     public DModSet<T> dscaled(int scale)
     {
         DModSet<T> ret = new DModSet<>(p);
-        if(resmath.dmod(scale) == 0)
+        if(resmath.positive_modp(scale) == 0)
             return ret; // scaling by 0
         for(Map.Entry<Dot<T>,Integer> e1 : entrySet())
-            ret.put(e1.getKey(), resmath.dmod(e1.getValue() * scale));
+            ret.put(e1.getKey(), resmath.positive_modp(e1.getValue() * scale));
         return ret;
 
     }

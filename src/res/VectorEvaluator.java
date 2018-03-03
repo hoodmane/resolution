@@ -17,10 +17,14 @@ import java.util.Iterator;
 import java.util.Deque;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.NoSuchElementException;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 class vector {
     private enum Type {
@@ -138,6 +142,13 @@ class vector {
         return this.vect;
     }
     
+    int getInt(){
+        if(this.type == VECT){
+            throw new IllegalArgumentException("");
+        }
+        return this.n;
+    }
+    
     @Override
     public String toString(){
         if(this.type == INT){
@@ -173,20 +184,40 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     private static final Operator TIMES = new Operator("*", 2, Operator.Associativity.LEFT, 2);
     private static final Operator PLUS = new Operator("+", 2, Operator.Associativity.LEFT, 1);
     private static final Function BINOMIAL = new Function("binom", 2);
+    private static final Function SUM = new Function("sum", 2);
+
+    /** The evaluator's parameters.*/
+    private static final Parameters PARAMETERS;
+    static {
+            // Create the evaluator's parameters
+            PARAMETERS = new Parameters();
+            // Add the supported operators
+            PARAMETERS.add(PLUS);
+            PARAMETERS.add(NEGATE);
+            PARAMETERS.add(SUBTRACT);
+            PARAMETERS.add(TIMES);            
+            PARAMETERS.add(FACTORIAL);
+            PARAMETERS.add(BINOMIAL);            
+            PARAMETERS.add(SUM);
+            // Add the default parenthesis pair
+            PARAMETERS.addExpressionBracket(BracketPair.PARENTHESES);
+            PARAMETERS.addFunctionBracket(BracketPair.PARENTHESES);
+    }
     
-    private static final Pattern TERMPAT = Pattern.compile("(\\d*)(.*)");
     private final Map<String,Integer> variableSet;
 
     private final Tokenizer tokenizer;
 
-    public static class VectorEvaluationContext {
+    public static class VectorEvaluationContext implements AbstractVariableSet<vector> {
         private int degree;
         private static final String wrongDegreeErrorTemplate = "Variable \"%s\" in %s has the wrong degree. |%s| = %d, but |%s| + |%s| = %d";
         private String relationInfo;
         private String LHSOperator;
         private String LHSGenerator;
+        private final Map<String,Integer> iteratorVariables;
         public VectorEvaluationContext() {
             super();
+            iteratorVariables = new HashMap<>();
         }
         
         public VectorEvaluationContext setDegree(int degree){
@@ -215,31 +246,48 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         public String getDegreeErrorMessage(String var, int varDegree){
             return String.format(wrongDegreeErrorTemplate, var,relationInfo, var, varDegree, LHSOperator, LHSGenerator, degree);
         }
+        
+        String substituteVariables(String s){
+            for(Map.Entry<String, Integer> e : iteratorVariables.entrySet()){
+                s = s.replace(e.getKey(),String.valueOf(e.getValue()));
+            }
+            return s;
+        }
+        
+        
+        void setIteratorVariable(String var, int val){
+            iteratorVariables.put(var, val);
+        }
+        
+        @Override
+        public vector get(String var){
+            if(iteratorVariables.containsKey(var)){
+                return vector.getScalar(iteratorVariables.get(var));
+            } else {
+                return null;
+            }
+        }
+        
+        int getIteratorVariableValue(String var){
+            return iteratorVariables.get(var);
+        }
+
+        boolean hasIteratorVariableValue(String var){
+            return iteratorVariables.containsKey(var);
+        }        
+
+        void removeIteratorVariable(String var){
+            iteratorVariables.remove(var);
+        }        
     }
 
-    /** The evaluator's parameters.*/
-    private static final Parameters PARAMETERS;
-    static {
-            // Create the evaluator's parameters
-            PARAMETERS = new Parameters();
-            // Add the supported operators
-            PARAMETERS.add(FACTORIAL);
-            PARAMETERS.add(TIMES);
-            PARAMETERS.add(PLUS );
-            PARAMETERS.add(NEGATE);
-            PARAMETERS.add(BINOMIAL);
-            // Add the default parenthesis pair
-            PARAMETERS.addExpressionBracket(BracketPair.PARENTHESES);
-            PARAMETERS.addFunctionBracket(BracketPair.PARENTHESES);
-    }
-
-    /** Constructor.
+    /** Constructor. Takes a map variable => degree
     * @param variables
      */
     public VectorEvaluator(Map<String,Integer> variables) {
         super(PARAMETERS);
         variableSet = variables;
-        final ArrayList<String> tokenDelimitersBuilder = new ArrayList<String>();
+        final ArrayList<String> tokenDelimitersBuilder = new ArrayList<>();
         for(final BracketPair pair : PARAMETERS.getFunctionBrackets()) {
             tokenDelimitersBuilder.add(pair.getOpen());
             tokenDelimitersBuilder.add(pair.getClose());
@@ -253,6 +301,8 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         }
         tokenDelimitersBuilder.add(PARAMETERS.getFunctionArgumentSeparator());
         tokenDelimitersBuilder.add(" ");
+        tokenDelimitersBuilder.add(BracketPair.BRACES.getOpen());
+        tokenDelimitersBuilder.add(BracketPair.BRACES.getClose());
         tokenizer = new Tokenizer(tokenDelimitersBuilder);
     }
 
@@ -261,49 +311,67 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         return tokenizer.tokenize(expression);
     }
     
+    private static final Pattern TERMPAT = Pattern.compile("(\\d*)(.*)");
+    
+    /**
+     * There are three cases here:
+     *   1. If the literal is of the form <integer> e.g. "123" then we just make that into an "INT" vector
+     *   2. If the literal is of the form <variable_name> e.g. "x" then we check if the variable has the right degree and if so make a vector with coefficient one.
+     *   3. If the literal is of the form <iterator> e.g. "i" then we make an "INT" vector with the associated value
+     * 
+     *   In case 2 or 3, we can also handle a literal with a constant in front e.g., 2x or 2i.
+     *   In case 2, the variable can have subscripted expressions: x_i_{n-i} becomes x13
+     * @param literal A literal
+     * @param ec The evaluation context
+     * @return the literal converted to a vector
+     */
     @Override
-    protected vector toValue(String literal, Object eC) {
-        vector result;
-        VectorEvaluationContext evaluationContext = (VectorEvaluationContext) eC;
-//            System.out.println(literal);
-        try {
-           result = vector.getScalar(Integer.parseInt(literal));
-           return result;
-        } catch(NumberFormatException e) {}
-        if(variableSet.containsKey(literal)){
-            if(variableSet.get(literal) == evaluationContext.getDegree()){
-                result = vector.getVector(literal,1);
-                return result;
-            } else {
-                throw new IllegalArgumentException(evaluationContext.getDegreeErrorMessage(literal,variableSet.get(literal)));
+    protected vector toValue(String literal, Object ec) {
+        VectorEvaluationContext evaluationContext = (VectorEvaluationContext) ec;
+//      Split into integer coefficient and remaining actual "literal"
+        Matcher matcher = TERMPAT.matcher(literal);
+        if(!matcher.find()){
+            throw new IllegalArgumentException("Invalid literal " + literal);
+        }        
+        String coefficientString = matcher.group(1);
+        literal = matcher.group(2);
+//      Find the coefficient.
+        int coefficient;
+        if("".equals(coefficientString)){
+            coefficient = 1;
+        } else {
+            try {
+                coefficient = Integer.parseInt(coefficientString);
+            } catch(NumberFormatException e) {
+                throw new IllegalArgumentException("");
             }
         }
         
-        String[] split = literal.split(" ");
-        if(split.length == 1){
-            Matcher matcher = TERMPAT.matcher(literal);
-            if(!matcher.find()){
-            throw new IllegalArgumentException("Invalid literal " + literal);
-            }
-            int coefficient;
-            try {
-                coefficient = Integer.parseInt(matcher.group(1));
-            } catch(NumberFormatException e){
-                throw new IllegalArgumentException("Invalid literal " + literal);
-            }
-            String termVariableName = matcher.group(2);
-            if(!variableSet.containsKey(termVariableName)){
-                 throw new IllegalArgumentException("Invalid variable " + termVariableName);
-            }
-            if(variableSet.get(termVariableName) != evaluationContext.getDegree()){
-                throw new IllegalArgumentException(evaluationContext.getDegreeErrorMessage(termVariableName,variableSet.get(termVariableName)));
-            }
-            result = vector.getVector(termVariableName, coefficient);
-            return result;
-        } 
+        if("".equals(literal)){
+//         Case 1: it's an integer
+           return vector.getScalar(coefficient);
+        }
         
-        result = evaluate(split[0],evaluationContext).mult(evaluate(split[1],evaluationContext));
-        return result;
+//      Calculate actual variable name: all subscripts are to be evaluated into integers and appended.
+        String[] split = literal.split("_");
+        String subLiteral = split[0] + Arrays.stream(split).skip(1)
+                .map(s -> String.valueOf(evaluate(s,evaluationContext).getInt()))
+                .collect(Collectors.joining());
+        
+        if(variableSet.containsKey(subLiteral)){
+//          Case 2: it is a variable "x" or "x_i"            
+//          Make sure degree is right
+            if(variableSet.get(subLiteral) == evaluationContext.getDegree()){
+                return vector.getVector(subLiteral,coefficient);
+            } else {
+                throw new IllegalArgumentException(evaluationContext.getDegreeErrorMessage(subLiteral,variableSet.get(subLiteral)));
+            }
+        } else if(evaluationContext.hasIteratorVariableValue(literal)){
+//          Case 3:  it's an iterator
+            return vector.getScalar(evaluationContext.getIteratorVariableValue(literal) * coefficient);
+        } else {
+            throw new IllegalArgumentException("");
+        }
     }
 
     @Override
@@ -321,28 +389,13 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
                     result = o1.mult(o2);
                 } else if (operator == PLUS) {
                     result = o1.add(o2);
+                } else if(operator == SUBTRACT){ 
+                    result = o1.add(o2.negate());
                 } else {
                     result = super.evaluate(operator, operands, evaluationContext);
                 }
             }
         return result;
-    }
-
-    @Override
-    protected vector evaluate(Constant constant, Object evaluationContext) {
-        vector result = new vector();
-            // Implementation of supported constants
-//		int length = ((BitSetEvaluationContext)evaluationContext).getBitSetLength();
-//		BitSet result;
-//		if (constant==FALSE) {
-//			result = new BitSet(length);
-//		} else if (constant==TRUE) {
-//			result = new BitSet(length);
-//			result.flip(0, length);
-//		} else {
-//			result = super.evaluate(constant, evaluationContext);
-//		}
-            return result;
     }
     
     @Override
@@ -357,16 +410,20 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     }    
 
     @Override
-    public vector evaluate(String expression, Object evaluationContext) {
+    public vector evaluate(String expression, Object evaluationContext) {      
+        final Iterator<String> tokens = tokenize(expression);
+        return evaluate(tokens,evaluationContext);
+    }
+    
+    public vector evaluate(Iterator<String> tokens, Object evaluationContext){
         final Deque<vector> values = new ArrayDeque<>(); // values stack
         final Deque<Token> stack = new ArrayDeque<>(); // operator stack
         final Deque<Integer> previousValuesSize = functions.isEmpty()?null:new ArrayDeque<>();
-        final Iterator<String> tokens = tokenize(expression);
         Token previous = null;
         while (tokens.hasNext()) {
             // read one token from the input stream
-            String strToken = tokens.next();
-            final Token token = toToken(previous, strToken);
+            final String strToken = tokens.next();
+            Token token = toToken(previous, strToken);
             if (token.isOpenBracket()) {
                 // If the token is a left parenthesis, then push it onto the stack.
                 stack.push(token);
@@ -454,14 +511,23 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
             } else if (token.isFunction()) {
                 // If the token is a function token, then push it onto the stack.
                 insertImplicitMultiplicationIfNeeded(previous,values,stack,evaluationContext);
-                stack.push(token);
-                previousValuesSize.push(values.size());
+                if(token.getFunction() == SUM){
+                    handleSum(tokens,values,stack,evaluationContext);
+                } else {
+                    stack.push(token);
+                    previousValuesSize.push(values.size());
+                }
             } else if (token.isOperator()) {
                 handleOperator(token,values,stack,evaluationContext);
-            } else {
+            } else if(token.isLiteral()) {
+                if(strToken.endsWith("_")){
+                    token = grabSubscripts(strToken,tokens,evaluationContext);
+                }
                 insertImplicitMultiplicationIfNeeded(previous,values,stack,evaluationContext);
                 // If the token is a number (identifier), a constant or a variable, then add its value to the output queue.
                 output(values, token, evaluationContext);
+            } else {
+                assert(false);
             }
             previous = token;
         }
@@ -479,6 +545,165 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         }
         vector pop = values.pop();
         return pop;
+    }        
+    
+    private Token grabSubscripts(String strToken, Iterator<String> toks, Object evaluationContext) {
+        PeekingIterator<String> tokens  = PeekingIterator.getPeekingIterator(toks);
+        String t;
+        while(strToken.endsWith("_")){
+            final StringBuilder str = new StringBuilder(strToken);
+            if(!tokens.hasNext()){
+                throw new IllegalArgumentException("");
+            }
+            t = tokens.next();            
+            boolean success = false;
+            if(!"{".equals(t)){
+                str.append(t);
+            } else {
+//                str.append(t);
+                while(tokens.hasNext()){
+                    t = tokens.next();
+                    if("}".equals(t)){
+                        success = true;
+                        break;
+                    }
+                    str.append(t);                    
+                }
+            }
+            if(!success){
+                throw new IllegalArgumentException("");
+            }
+            if(tokens.peek().startsWith("_")){
+                str.append(tokens.next());
+            }
+            strToken = str.toString();
+        }        
+        return toToken(null,strToken);
+    }    
+
+    private void expectToken(Iterator<String> tokens,String expectedToken){
+        if(!tokens.hasNext()){
+            throw new IllegalArgumentException("");
+        }
+        final String strToken = tokens.next();
+        if(!expectedToken.equals(strToken)){
+            throw new IllegalArgumentException("");
+        } 
+   
+    }
+
+    
+    private String expectToken(Iterator<String> tokens,Predicate<Token> pred){
+        if(!tokens.hasNext()){
+            throw new IllegalArgumentException("");
+        }
+        final String strToken = tokens.next();
+        final Token token = toToken(null, strToken);
+        if(!pred.test(token)){
+            throw new IllegalArgumentException("");
+        }
+        return strToken;
+    }    
+    
+    
+    private void handleSum(Iterator<String> tokens,Deque<vector> values, Deque<Token> stack, Object evaluationContext) {
+        int parens = 0;
+        ArrayList<String> expression = new ArrayList<>();
+        expectToken(tokens,"(");
+        Token previous = null;
+        boolean success = false;
+        while (tokens.hasNext()) {
+            final String strToken = tokens.next();
+            final Token token = toToken(previous, strToken);
+            if (token.isOpenBracket()) {
+                expression.add(strToken);
+                parens ++;
+            } else if (token.isCloseBracket()) {
+                expression.add(strToken);
+                parens -- ;
+                if(parens<0){
+                    throw new IllegalArgumentException("");
+                }
+            } else if(token.isFunctionArgumentSeparator()) {
+                if(parens > 0){
+                    expression.add(strToken);
+                } else {
+                    success = true;
+                    break;
+                }
+            } else if(token.isFunction()) {
+                expression.add(strToken);
+            } else if(token.isOperator()){
+                expression.add(strToken);
+            } else if(token.isLiteral()){
+                expression.add(strToken);
+            } else {
+                assert(false);
+            }
+            previous = token;
+        }
+        if(!success){
+            throw new IllegalArgumentException("");
+        }
+        
+        expectToken(tokens,"{");
+        String itvar = expectToken(tokens,Token::isLiteral);
+        expectToken(tokens,Token::isFunctionArgumentSeparator);
+        ArrayList<String> argTokens = new ArrayList<>();
+        ArrayList<Integer> args = new ArrayList<>(3);
+        success = false;
+        while (tokens.hasNext()) {
+            final String strToken = tokens.next();
+            final Token token = toToken(null, strToken);
+            if("}".equals(strToken)){
+                args.add(evaluate(argTokens.iterator(),evaluationContext).getInt());
+                success = true;
+                break;
+            } else if(token.isFunctionArgumentSeparator()){
+                args.add(evaluate(argTokens.iterator(),evaluationContext).getInt());
+                argTokens = new ArrayList<>();
+            } else {
+                argTokens.add(strToken);
+            }
+        }
+        if(!success){
+            throw new IllegalArgumentException("");
+        }
+        expectToken(tokens,")");
+        int min = 1;
+        int max;
+        int step = 1;        
+        switch(args.size()){
+            case 0:
+                throw new IllegalArgumentException("");
+            case 1:
+                max = args.get(0);
+                break;
+            case 2:
+                min = args.get(0);
+                max = args.get(1);
+                break;
+            case 3:
+                min = args.get(0);
+                max = args.get(1);
+                step = args.get(2);
+                break;    
+            default:
+                throw new IllegalArgumentException("");
+        }
+        
+        ArrayList<vector> results = new ArrayList<>();
+        final VectorEvaluationContext vectEvaluationContext = (VectorEvaluationContext) evaluationContext;
+        for(int i = min; i<=max; i+=step){
+            vectEvaluationContext.setIteratorVariable(itvar, i);
+            results.add(evaluate(expression.iterator(),evaluationContext));
+        }
+        vectEvaluationContext.removeIteratorVariable(itvar);
+        try {
+            values.push(results.stream().reduce(vector::add).get());
+        } catch(NoSuchElementException e) {
+            throw new IllegalArgumentException("Empty sum range");
+        }
     }        
     
     //// If there are two literals in a row, or a close parenthesis followed by a literal, there is an implicit multiplication.
@@ -514,15 +739,31 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     }
 
     
+    
+    
 
     /** A simple program using this evaluator.
       * @param args */
     public static void main(String[] args) {
         Map<String,Integer> varSet = new HashMap<>();
         varSet.put("x",2);
-        varSet.put("y",2);
+        varSet.put("x1",2);
+        varSet.put("x2",2);
+        varSet.put("x3",2);
+        varSet.put("x4",2);
+        varSet.put("x11",2);
+        varSet.put("x12",2);
+        varSet.put("x21",2);
+        varSet.put("x13",2);
+        varSet.put("x31",2);
+        varSet.put("x22",2);
+        varSet.put("y",2);        
         VectorEvaluator evaluator = new VectorEvaluator(varSet);
         VectorEvaluationContext context = new VectorEvaluationContext().setDegree(2).setLHSGenerator("x").setLHSOperator("P1").setRelationInfo("");
+        doIt(evaluator, "sum(i x_i_{4-i},{i,3})", context);
+        doIt(evaluator, "sum(sum(2i x_i_j,{i,3-j}),{j,2})", context);
+        doIt(evaluator, "sum(x_i,{i,1,4,2})", context);
+        doIt(evaluator, "binom(binom(2,3),3) x", context);
         doIt(evaluator, "2 2!", context);
         doIt(evaluator, "(x+y)binom(2,3)", context);
         doIt(evaluator, "2*2!", context);
@@ -531,7 +772,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         doIt(evaluator, "- x", context);
         doIt(evaluator, "x * 2", context);
         doIt(evaluator, "x + y", context);
-        doIt(evaluator, "x  +-  y", context);
+        doIt(evaluator, "x  -  y", context);
         doIt(evaluator, "(2+1)x", context);
         doIt(evaluator, "2 2!", context);
         doIt(evaluator, "(x+y)2!", context);

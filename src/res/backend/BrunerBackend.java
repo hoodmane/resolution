@@ -316,8 +316,8 @@ public class BrunerBackend<T extends GradedElement<T>>
                         Integer coeff = high.getValue();
                         if(Config.DEBUG) System.out.println("highest term "+d);
                         if(Config.DEBUG) Main.die_if(list_x.containsKey(d), "key clash on "+d);
-                        list_x.put(d, x.dscaled(resmath.inverse[coeff]));
-                        list_dx.put(d, dx.dscaled(resmath.inverse[coeff]));
+                        list_x.put(d, x.dscaled(resmath.inverse(coeff)));
+                        list_dx.put(d, dx.dscaled(resmath.inverse(coeff)));
                     }
                 }
             }
@@ -356,7 +356,7 @@ public class BrunerBackend<T extends GradedElement<T>>
                 if(moddx == null)
                     break;
                 int ocoeff = moddx.get(d);
-                k.add(moddx, -coeff * resmath.inverse[ocoeff]);
+                k.add(moddx, -coeff * resmath.inverse(ocoeff));
             }
             if(Config.DEBUG) System.out.printf("reduces to %s\n", k);
 
