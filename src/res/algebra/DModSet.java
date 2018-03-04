@@ -1,6 +1,5 @@
 package res.algebra;
 
-import res.*;
 import java.util.Map;
 
 /* to work around generic array restrictions */

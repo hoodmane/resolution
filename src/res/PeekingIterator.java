@@ -16,7 +16,7 @@ public class PeekingIterator<T> implements Iterator<T> {
     Iterator<T> iter;
     boolean noSuchElement;
 
-    public static <T> PeekingIterator<T> getPeekingIterator(Iterator<T> iter){
+    public static <T> PeekingIterator<T> getInstance(Iterator<T> iter){
         if(iter instanceof PeekingIterator){
             return (PeekingIterator)iter;
         } else {

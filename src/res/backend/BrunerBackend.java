@@ -381,7 +381,7 @@ public class BrunerBackend<T extends GradedElement<T>>
                 deg[g] = nov;
             }
 
-            Generator<T> gen = new Generator<>(p,deg, gens.size());
+            Generator<T> gen = new Generator<>(p,deg, totalGens);
             gen.setStructlineGetter(() -> ConvertCollection(dec.getStructlineDecorations(gen)));
             gen.img = k;
 

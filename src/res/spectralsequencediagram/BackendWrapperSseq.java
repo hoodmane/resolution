@@ -107,7 +107,7 @@ public class BackendWrapperSseq implements SpectralSequence {
 
     @Override
     public void removeListener(PingListener l) {
-       
+       back.removeListener(l);
     }
 
     

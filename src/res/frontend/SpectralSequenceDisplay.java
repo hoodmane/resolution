@@ -6,7 +6,13 @@ import res.transform.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import javax.swing.*;
 import javax.swing.event.*;
 import res.spectralsequencediagram.*;
@@ -73,11 +79,14 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     private Stroke gridStroke = new BasicStroke();
     private Stroke lineStroke = new BasicStroke();
     
+    private boolean mouseDown;
     JFrame frame;
     JTextArea textarea;
 
-    public static SpectralSequenceDisplay constructFrontend(SpectralSequence sseq,DisplaySettings settings) 
-    {
+    private final Timer screenPaintTimer;
+    
+    
+    public static SpectralSequenceDisplay constructFrontend(SpectralSequence sseq,DisplaySettings settings) {
         SpectralSequenceDisplay d = new SpectralSequenceDisplay(sseq,settings);
         d.frame = new JFrame("Resolution");
         d.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -95,6 +104,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     
     
     SpectralSequenceDisplay(SpectralSequence sseq,DisplaySettings settings){
+        this.screenPaintTimer = new Timer(40,new updateScreenIfNeeded());
         this.transform = new AffineTransform();
         xscale = settings.getXScale();
         yscale = settings.getYScale();
@@ -105,10 +115,40 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         this.sseq = sseq;
         this.setupGradings();
         updateTransform();
+        screenPaintTimer.start();
     }
     
-    private void setupGradings()
-    {
+    private boolean needsRepainting;
+    
+            
+    class updateScreenIfNeeded implements ActionListener{
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if(needsRepainting){
+                repaint();
+                needsRepainting = false;
+            }
+        }
+    }
+
+
+    void requestRepaint(){
+        needsRepainting = true;
+    }
+    
+    @Override public void ping(int[] deg) {
+        int[] topDeg = algToTopGrading(deg[0],deg[1]);
+        if(topDeg[0] < getMaxX() && !mouseDown){
+            repaint();
+        }
+        int[] s = algToTopGrading(selx, sely);
+        if(deg[0] == s[0] && deg[1] == s[1]){
+            setSelected(selx,sely); // updates text
+        }
+    }    
+    
+    
+    private void setupGradings() {
         int i;
         if(minfilt == null) {
             i = 0;
@@ -214,8 +254,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         this.lineStroke = s;
     }
     
-    @Override public void mouseClicked(MouseEvent evt)
-    {
+    @Override public void mouseClicked(MouseEvent evt) {
         repaint();
         int x = (int) getChartX(evt.getX());
         int y = (int) getChartY(evt.getY());
@@ -224,20 +263,19 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         } else {
             setSelected(-1,-1);
         }
+        System.out.println(getMaxX());
     }
-    @Override public void mousePressed(MouseEvent evt) { }
-    @Override public void mouseReleased(MouseEvent evt) { }
+    @Override public void mousePressed(MouseEvent evt) { mouseDown = true; }
+    @Override public void mouseReleased(MouseEvent evt) { mouseDown = false; }
     @Override public void mouseEntered(MouseEvent evt) { }
     @Override public void mouseExited(MouseEvent evt) { }
 
-    @Override public void mouseMoved(MouseEvent evt)
-    {
+    @Override public void mouseMoved(MouseEvent evt){
         mousex = evt.getX();
         mousey = evt.getY();
     }
 
-    @Override public void mouseDragged(MouseEvent evt)
-    {
+    @Override public void mouseDragged(MouseEvent evt){
         double dx = evt.getX() - mousex;
         double dy = evt.getY() - mousey;
         mousex = evt.getX();
@@ -249,8 +287,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         repaint();
     }
 
-    @Override public void mouseWheelMoved(MouseWheelEvent evt)
-    {
+    @Override public void mouseWheelMoved(MouseWheelEvent evt){
         double dZ = evt.getWheelRotation();
         double scale_factor = Math.pow(ZOOM_BASE,-dZ);
         transform.translate((1-scale_factor) * getChartX(mousex), (1-scale_factor) * getChartY(mousey));        
@@ -261,8 +298,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     }
     
     
-    boolean isVisible(SseqClass d)
-    {
+    boolean isVisible(SseqClass d){
         int[] deg = d.getDegree();
         for(int i = 2; i < minfilt.length; i++)
             if(deg[i] < minfilt[i] || deg[i] > maxfilt[i])
@@ -270,10 +306,13 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         return true; //dec.isVisible(d);
     }
 
-    int[] multideg(int x, int y)
-    {
+    int[] algToTopGrading(int x, int y){
         return new int[] {y,x+y};
     }
+    
+    int[] topToAlgGrading(int x, int y){
+        return new int[] {y - x,x};
+    }    
     
     
     private Map<SseqClass,Point2D> pos;
@@ -432,7 +471,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         pos = new HashMap<>();
         for(int x = min_x_visible; x <= max_x_visible && x <= T_max + 3; x++) {
             for(int y = min_y_visible; y <= max_y_visible; y++) {
-                int cellState = sseq.getState(multideg(x,y));
+                int cellState = sseq.getState(algToTopGrading(x,y));
                 Color cellColor;
                 cellColor = STATE_COLORS.get(cellState);
                 
@@ -444,7 +483,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
                     continue;
                 }
                 
-                Collection<SseqClass> classes = sseq.getClasses(multideg(x,y));
+                Collection<SseqClass> classes = sseq.getClasses(algToTopGrading(x,y));
 //                System.out.println("classes: " + sseq.getClasses(multideg(15,1)).size());
                 int visible;
                 synchronized(classes) {
@@ -452,12 +491,12 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
                         frameVisibles.add(d);
                         return d;
                     }).count();
-                    int offset = -5 * (visible-1) / 2;
+                    double offset = -10 * (visible-1) / 2 * scale;
                     for(SseqClass d : classes) { 
                         if(frameVisibles.contains(d)) {
                             Point2D newpos = new Point2D.Double( getScreenX(x) + offset, getScreenY(y) - offset/2 );
                             pos.put(d, newpos);
-                            offset += 5;
+                            offset += 10 * scale;
                         }
                     }
                 }
@@ -497,7 +536,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         if(textarea == null) return;
 
         String ret = "";
-        switch(sseq.getState(multideg(x,y))) {
+        switch(sseq.getState(algToTopGrading(x,y))) {
             case MultigradedVectorSpace.STATE_VANISHES:
                 ret = "This degree vanishes formally.";
                 break;
@@ -513,7 +552,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
             case MultigradedVectorSpace.STATE_DONE:
             default:
                 ret += "Bidegree ("+x+","+y+")\n";
-                Collection<SseqClass> classes = sseq.getClasses(multideg(x,y));
+                Collection<SseqClass> classes = sseq.getClasses(algToTopGrading(x,y));
                 for(SseqClass c : classes) if(isVisible(c)) {
                     ret += "\n" + c.toString();
                     ret += "\n" + c.extraInfo();
@@ -523,14 +562,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
 
         textarea.setText(ret);
     }
-
-    @Override public void ping(int[] deg)
-    {
-        repaint();
-        int[] s = multideg(selx, sely);
-        if(deg[0] == s[0] && deg[1] == s[1])
-            setSelected(selx,sely); // updates text
-    }
+   
 
 
     @Override

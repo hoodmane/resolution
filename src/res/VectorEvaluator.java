@@ -18,13 +18,21 @@ import java.util.Deque;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
+
+class relation { 
+    int operatorDegree;
+    String inputVariable;
+    vector RHS;
+}
 
 class vector {
     private enum Type {
@@ -36,18 +44,23 @@ class vector {
     Type type;
     Map<String,Integer> vect;
     int n;
+    int p;
+    final ResMath resMath;
     
-    vector(){}
+    vector(int p){
+        this.p = p;
+        resMath = ResMath.getInstance(p);
+    }
     
-    public static vector getScalar(int n){
-        vector v = new vector();
+    public static vector getScalar(int n, int p){
+        vector v = new vector(p);
         v.type = INT;
         v.n = n;
         return v;
     }
     
-    public static vector getVector(String var, int c){
-        vector v = new vector();
+    public static vector getVector(String var, int c,int p){
+        vector v = new vector(p);
         v.type = VECT;
         v.vect = new HashMap<>();
         v.vect.put(var, c);
@@ -61,17 +74,24 @@ class vector {
         if(b.type != INT){
             throw new IllegalArgumentException("");
         }        
-        return getScalar(2*a.n + 3*b.n);
+        return getScalar(a.resMath.binom(a.n, b.n),a.p);
+    }
+    
+    vector fact(){
+        if(this.type == VECT){
+            throw new IllegalArgumentException(""); 
+        }
+        return getScalar(resMath.factorial(n),p);
     }
     
     vector add(vector v){
-        vector result = new vector();
+        vector result = new vector(p);
         if(this.type != v.type){
             throw new IllegalArgumentException("");
         }
         if(this.type==INT){
             result.type = INT;
-            result.n = this.n + v.n;
+            result.n = (this.n + v.n)%p;
         } else {
             result.type = VECT;
             result.vect = new HashMap<>(this.vect);
@@ -80,9 +100,9 @@ class vector {
                 Integer summand = e.getValue();
                 Integer orig_value = result.vect.get(key);
                 if(orig_value==null){
-                    result.vect.put(key,summand);
+                    result.vect.put(key,summand%p);
                 } else {
-                    result.vect.put(key,orig_value + summand);
+                    result.vect.put(key,(orig_value + summand)%p);
                 }
             });
         }
@@ -105,11 +125,11 @@ class vector {
         if(this.type == VECT && v.type == VECT){
             throw new IllegalArgumentException("");
         }
-        vector result = new vector();
+        vector result = new vector(p);
 //      Multiply ints normally
         if(this.type == INT && v.type == INT){
             result.type = INT;
-            result.n = this.n * v.n;
+            result.n = (this.n * v.n) % p;
             return result;
         } 
 //      scale all coefficients of vect
@@ -123,16 +143,9 @@ class vector {
             result.vect = new HashMap<>(this.vect);
         }
         result.vect.entrySet().forEach(e -> {
-            result.vect.put(e.getKey(),e.getValue() * factor);
+            result.vect.put(e.getKey(),(e.getValue() * factor)%p);
         });
         return result;
-    }
-    
-    vector fact(){
-        if(this.type == VECT){
-            throw new IllegalArgumentException(""); 
-        }
-        return getScalar(n+2);
     }
     
     Map<String,Integer> getVector(){
@@ -180,7 +193,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     /** The negate unary operator.*/
     private static final Operator FACTORIAL = new Operator("!", 1, Operator.Associativity.LEFT, 4);
     private static final Operator NEGATE = new Operator("-", 1, Operator.Associativity.RIGHT, 3);
-    private static final Operator SUBTRACT = new Operator("-", 2, Operator.Associativity.RIGHT, 3);
+    private static final Operator SUBTRACT = new Operator("-", 2, Operator.Associativity.LEFT, 3);
     private static final Operator TIMES = new Operator("*", 2, Operator.Associativity.LEFT, 2);
     private static final Operator PLUS = new Operator("+", 2, Operator.Associativity.LEFT, 1);
     private static final Function BINOMIAL = new Function("binom", 2);
@@ -206,19 +219,31 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     
     private final Map<String,Integer> variableSet;
 
-    private final Tokenizer tokenizer;
+    private final Tokenizer myTokenizer;
+    
+    private enum State {
+        LHS,
+        RHS
+    }
 
     public static class VectorEvaluationContext implements AbstractVariableSet<vector> {
         private int degree;
+        int p, q;
         private static final String wrongDegreeErrorTemplate = "Variable \"%s\" in %s has the wrong degree. |%s| = %d, but |%s| + |%s| = %d";
         private String relationInfo;
         private String LHSOperator;
         private String LHSGenerator;
+        private State state = State.LHS;
         private final Map<String,Integer> iteratorVariables;
-        public VectorEvaluationContext() {
+        public VectorEvaluationContext(int p) {
             super();
             iteratorVariables = new HashMap<>();
+            this.p = p;
+            q = 2*p-2;
+            iteratorVariables.put("p",p);
+            iteratorVariables.put("q",q);
         }
+        
         
         public VectorEvaluationContext setDegree(int degree){
             this.degree = degree;
@@ -262,7 +287,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         @Override
         public vector get(String var){
             if(iteratorVariables.containsKey(var)){
-                return vector.getScalar(iteratorVariables.get(var));
+                return vector.getScalar(iteratorVariables.get(var),p);
             } else {
                 return null;
             }
@@ -301,17 +326,27 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         }
         tokenDelimitersBuilder.add(PARAMETERS.getFunctionArgumentSeparator());
         tokenDelimitersBuilder.add(" ");
+        tokenDelimitersBuilder.add("=");
         tokenDelimitersBuilder.add(BracketPair.BRACES.getOpen());
         tokenDelimitersBuilder.add(BracketPair.BRACES.getClose());
-        tokenizer = new Tokenizer(tokenDelimitersBuilder);
+        myTokenizer = new Tokenizer(tokenDelimitersBuilder);
     }
 
     @Override
     protected Iterator<String> tokenize(String expression) {
-        return tokenizer.tokenize(expression);
+        return myTokenizer.tokenize(expression);
     }
     
     private static final Pattern TERMPAT = Pattern.compile("(\\d*)(.*)");
+    
+    String substituteVariableName(String varName, Object ec){
+        VectorEvaluationContext evaluationContext = (VectorEvaluationContext) ec;
+        String[] split = varName.split("_");
+        String ret = split[0] + Arrays.stream(split).skip(1)
+                .map(s -> String.valueOf(evaluate(s,evaluationContext).getInt()))
+                .collect(Collectors.joining());
+        return ret;
+    }
     
     /**
      * There are three cases here:
@@ -349,26 +384,22 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         
         if("".equals(literal)){
 //         Case 1: it's an integer
-           return vector.getScalar(coefficient);
+           return vector.getScalar(coefficient,evaluationContext.p);
         }
         
 //      Calculate actual variable name: all subscripts are to be evaluated into integers and appended.
-        String[] split = literal.split("_");
-        String subLiteral = split[0] + Arrays.stream(split).skip(1)
-                .map(s -> String.valueOf(evaluate(s,evaluationContext).getInt()))
-                .collect(Collectors.joining());
-        
-        if(variableSet.containsKey(subLiteral)){
+        String subVarName = substituteVariableName(literal,evaluationContext);
+        if(variableSet.containsKey(subVarName)){
 //          Case 2: it is a variable "x" or "x_i"            
 //          Make sure degree is right
-            if(variableSet.get(subLiteral) == evaluationContext.getDegree()){
-                return vector.getVector(subLiteral,coefficient);
+            if(variableSet.get(subVarName) == evaluationContext.getDegree()){
+                return vector.getVector(subVarName,coefficient,evaluationContext.p);
             } else {
-                throw new IllegalArgumentException(evaluationContext.getDegreeErrorMessage(subLiteral,variableSet.get(subLiteral)));
+                throw new IllegalArgumentException(evaluationContext.getDegreeErrorMessage(subVarName,variableSet.get(subVarName)));
             }
         } else if(evaluationContext.hasIteratorVariableValue(literal)){
 //          Case 3:  it's an iterator
-            return vector.getScalar(evaluationContext.getIteratorVariableValue(literal) * coefficient);
+            return vector.getScalar(evaluationContext.getIteratorVariableValue(literal) * coefficient,evaluationContext.p);
         } else {
             throw new IllegalArgumentException("");
         }
@@ -376,26 +407,24 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
 
     @Override
     protected vector evaluate(Operator operator, Iterator<vector> operands, Object evaluationContext) {
-        vector result;
-            // Implementation of supported operators
-            vector o1 = operands.next();
-            if (operator == NEGATE) {
-                result = o1.negate();
-            } else if(operator == FACTORIAL ) {
-                result = o1.fact();
+        // Implementation of supported operators
+        vector o1 = operands.next();
+        if (operator == NEGATE) {
+            return o1.negate();
+        } else if(operator == FACTORIAL ) {
+            return o1.fact();
+        } else {
+            vector o2 = operands.next();
+            if (operator == TIMES) {
+                return o1.mult(o2);
+            } else if (operator == PLUS) {
+                return o1.add(o2);
+            } else if(operator == SUBTRACT){ 
+                return o1.add(o2.negate());
             } else {
-                vector o2 = operands.next();
-                if (operator == TIMES) {
-                    result = o1.mult(o2);
-                } else if (operator == PLUS) {
-                    result = o1.add(o2);
-                } else if(operator == SUBTRACT){ 
-                    result = o1.add(o2.negate());
-                } else {
-                    result = super.evaluate(operator, operands, evaluationContext);
-                }
+                return super.evaluate(operator, operands, evaluationContext);
             }
-        return result;
+        }
     }
     
     @Override
@@ -413,6 +442,102 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     public vector evaluate(String expression, Object evaluationContext) {      
         final Iterator<String> tokens = tokenize(expression);
         return evaluate(tokens,evaluationContext);
+    }
+    
+    public Collection<relation> evaluateRelation(String expression, VectorEvaluationContext evaluationContext) {      
+        final Iterator<String> tokens = tokenize(expression);
+        return evaluateRelation(tokens,evaluationContext);
+    }
+    
+    private static final Pattern OPERATOR_PAT = Pattern.compile("(Sq|P|b)\\^?(.*)");
+    public Collection<relation> evaluateRelation(Iterator<String> toks,Object ec){
+        VectorEvaluationContext evaluationContext = (VectorEvaluationContext)ec;
+        PeekingIterator<String> tokens = PeekingIterator.getInstance(toks);
+        if(!tokens.hasNext()){
+            throw new IllegalArgumentException("");
+        }
+        String strToken = tokens.next();
+        if("table".equals(strToken)){
+            Collection<Collection<relation>> results = handleIterator(tokens, 
+                    (expression,evalContext) -> evaluateRelation(expression,evalContext),
+                    evaluationContext);
+            Collection<relation> flattenedResults = results.stream().flatMap(Collection::stream).collect(Collectors.toList());
+            return flattenedResults;
+        } 
+//      Here we expect an operator symbol
+        Matcher matcher = OPERATOR_PAT.matcher(strToken);
+        if(!matcher.find()){
+            throw new IllegalArgumentException("");   
+        }
+
+        boolean shouldBeBeta = false;
+        boolean isBeta = false;
+        String operatorType = matcher.group(1);
+        String operatorNumberString = matcher.group(2);
+        String operatorName = matcher.group(1) + matcher.group(2);
+        int operatorDegree;
+        if(operatorNumberString.isEmpty()){ // Empty is fine as long as expression is "beta(x)"
+            operatorDegree = 0;
+            shouldBeBeta = true;
+        }  else {      
+            try {
+               operatorDegree = evaluate(operatorNumberString,evaluationContext).getInt(); 
+            } catch (NumberFormatException e) {
+              throw new IllegalArgumentException(""); // Invalid number (I'm not sure how to reach this).
+           }        
+        }
+        
+        switch(operatorType){
+            case "Sq" : 
+                break;
+            case "P":
+                operatorDegree *= evaluationContext.q;
+                break;
+            case "b":
+                operatorDegree = 1;
+                isBeta = true;
+                break;
+            default: // Isn't of the form "Sq", "P" or "b"
+                throw new IllegalArgumentException("");
+        }        
+
+        if(isBeta && ! shouldBeBeta){ 
+            throw new IllegalArgumentException(""); // "P" or "Sq" with missing number
+        } else if(! isBeta && shouldBeBeta) {
+            throw new IllegalArgumentException("");// "b" with number                 
+        }        
+        
+//      Now we should see a basis vector in parenthesis.
+        expectedToken(tokens,"(");
+        tokens.next();
+//      Here's the basis vector
+        strToken = tokens.next(); 
+        String inputVariableName = grabSubscripts(strToken,tokens,evaluationContext).getLiteral();
+        expectedToken(tokens,")");
+        tokens.next();  
+        
+        String inputVariable = substituteVariableName(inputVariableName,evaluationContext);
+        if(!variableSet.containsKey(inputVariable)){
+            throw new IllegalArgumentException("Unknown variable " + inputVariableName);
+        }
+        int inputDegree = variableSet.get(inputVariable);
+//      Now the RHS
+        expectedToken(tokens,"=");
+        tokens.next();
+//      The rest is a vector expression.
+        evaluationContext.setDegree(operatorDegree + inputDegree);
+        vector RHS = evaluate(tokens,evaluationContext);
+        relation rel = new relation();
+        rel.inputVariable = inputVariable;
+        rel.operatorDegree = operatorDegree;
+        rel.RHS = RHS;
+        List<relation> ret = new ArrayList();
+        ret.add(rel);
+        return ret;
+    }
+    
+    private Collection<relation> handleTable(Iterator<String> tokens,VectorEvaluationContext evaluationContext){
+        return null;
     }
     
     public vector evaluate(Iterator<String> tokens, Object evaluationContext){
@@ -512,7 +637,15 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
                 // If the token is a function token, then push it onto the stack.
                 insertImplicitMultiplicationIfNeeded(previous,values,stack,evaluationContext);
                 if(token.getFunction() == SUM){
-                    handleSum(tokens,values,stack,evaluationContext);
+                    Collection<vector> results = 
+                        handleIterator(tokens, 
+                            (expression, ec) -> evaluate(expression,ec)
+                            ,evaluationContext);
+                    try {
+                        values.push(results.stream().reduce(vector::add).get());
+                    } catch(NoSuchElementException e) {
+                        throw new IllegalArgumentException("Empty sum range");
+                    }                    
                 } else {
                     stack.push(token);
                     previousValuesSize.push(values.size());
@@ -548,7 +681,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     }        
     
     private Token grabSubscripts(String strToken, Iterator<String> toks, Object evaluationContext) {
-        PeekingIterator<String> tokens  = PeekingIterator.getPeekingIterator(toks);
+        PeekingIterator<String> tokens  = PeekingIterator.getInstance(toks);
         String t;
         while(strToken.endsWith("_")){
             final StringBuilder str = new StringBuilder(strToken);
@@ -581,35 +714,42 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         return toToken(null,strToken);
     }    
 
-    private void expectToken(Iterator<String> tokens,String expectedToken){
+    private void expectedToken(PeekingIterator<String> tokens,String expectedToken){
         if(!tokens.hasNext()){
-            throw new IllegalArgumentException("");
+            throw new IllegalArgumentException("Unexpected end of expression");
         }
-        final String strToken = tokens.next();
-        if(!expectedToken.equals(strToken)){
-            throw new IllegalArgumentException("");
-        } 
-   
+        if(!expectedToken.equals(tokens.peek())){
+            throw new IllegalArgumentException("Expected " + expectedToken + " but instead " + tokens.peek());
+        }
     }
 
-    
-    private String expectToken(Iterator<String> tokens,Predicate<Token> pred){
+    private void expectedToken(PeekingIterator<String> tokens,Predicate<Token> pred){
         if(!tokens.hasNext()){
-            throw new IllegalArgumentException("");
+            throw new IllegalArgumentException("Unexpected end of expression");
         }
-        final String strToken = tokens.next();
-        final Token token = toToken(null, strToken);
-        if(!pred.test(token)){
-            throw new IllegalArgumentException("");
+        if(!pred.test(toToken(null, tokens.peek()))){
+            throw new IllegalArgumentException("Unexpected token " + tokens.peek());
         }
-        return strToken;
     }    
     
     
-    private void handleSum(Iterator<String> tokens,Deque<vector> values, Deque<Token> stack, Object evaluationContext) {
+    interface IteratorCallback<T> {
+        T doBody(Iterator<String> expression, Object evaluationContext);
+    }
+    
+    /**
+     * After finding a "table" or a "sum", call this to find the variable ranges and iterate over the body of the loop
+     * for each value of the variable.
+     * @param toks The token stream to find the iterator expression in
+     * @param callback Calls this on (expressionBody, updatedEvaluationContext) for each step of the loop
+     * @param evaluationContext 
+     */
+    private <T> Collection<T> handleIterator(Iterator<String> toks, IteratorCallback<T> callback, Object evaluationContext) {
+        PeekingIterator<String> tokens = PeekingIterator.getInstance(toks);
         int parens = 0;
         ArrayList<String> expression = new ArrayList<>();
-        expectToken(tokens,"(");
+        expectedToken(tokens,"(");
+        tokens.next();
         Token previous = null;
         boolean success = false;
         while (tokens.hasNext()) {
@@ -646,9 +786,12 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
             throw new IllegalArgumentException("");
         }
         
-        expectToken(tokens,"{");
-        String itvar = expectToken(tokens,Token::isLiteral);
-        expectToken(tokens,Token::isFunctionArgumentSeparator);
+        expectedToken(tokens,"{");
+        tokens.next();
+        expectedToken(tokens,Token::isLiteral);
+        String itvar = tokens.next();
+        expectedToken(tokens,Token::isFunctionArgumentSeparator);
+        tokens.next();
         ArrayList<String> argTokens = new ArrayList<>();
         ArrayList<Integer> args = new ArrayList<>(3);
         success = false;
@@ -669,7 +812,8 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         if(!success){
             throw new IllegalArgumentException("");
         }
-        expectToken(tokens,")");
+        expectedToken(tokens,")");
+        tokens.next();
         int min = 1;
         int max;
         int step = 1;        
@@ -692,19 +836,19 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
                 throw new IllegalArgumentException("");
         }
         
-        ArrayList<vector> results = new ArrayList<>();
         final VectorEvaluationContext vectEvaluationContext = (VectorEvaluationContext) evaluationContext;
+        ArrayList<T> results = new ArrayList((max-min+1)/step);
         for(int i = min; i<=max; i+=step){
             vectEvaluationContext.setIteratorVariable(itvar, i);
-            results.add(evaluate(expression.iterator(),evaluationContext));
+            results.add(callback.doBody(expression.iterator(), evaluationContext));
         }
         vectEvaluationContext.removeIteratorVariable(itvar);
-        try {
-            values.push(results.stream().reduce(vector::add).get());
-        } catch(NoSuchElementException e) {
-            throw new IllegalArgumentException("Empty sum range");
-        }
+        return results;
     }        
+    
+    
+
+    
     
     //// If there are two literals in a row, or a close parenthesis followed by a literal, there is an implicit multiplication.
     private void insertImplicitMultiplicationIfNeeded(Token previous, Deque<vector> values, Deque<Token> stack, Object evaluationContext) {
@@ -759,14 +903,15 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         varSet.put("x22",2);
         varSet.put("y",2);        
         VectorEvaluator evaluator = new VectorEvaluator(varSet);
-        VectorEvaluationContext context = new VectorEvaluationContext().setDegree(2).setLHSGenerator("x").setLHSOperator("P1").setRelationInfo("");
+        VectorEvaluationContext context = new VectorEvaluationContext(11).setDegree(2).setLHSGenerator("x").setLHSOperator("P1").setRelationInfo("");
+        doIt(evaluator, "5-1-1", context);
         doIt(evaluator, "sum(i x_i_{4-i},{i,3})", context);
         doIt(evaluator, "sum(sum(2i x_i_j,{i,3-j}),{j,2})", context);
         doIt(evaluator, "sum(x_i,{i,1,4,2})", context);
-        doIt(evaluator, "binom(binom(2,3),3) x", context);
+        doIt(evaluator, "binom(5,3) x", context);
         doIt(evaluator, "2 2!", context);
         doIt(evaluator, "(x+y)binom(2,3)", context);
-        doIt(evaluator, "2*2!", context);
+        doIt(evaluator, "2*3!", context);
         doIt(evaluator, "x", context);
         doIt(evaluator, "2x", context);
         doIt(evaluator, "- x", context);

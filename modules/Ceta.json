@@ -1,0 +1,12 @@
+{
+    "prime" : 2,
+    "generators" : {"x0" : 0,"x1" : 2},
+    "T_max" : 60,
+    "relations" : [ "P1(x0) = x1"  ],
+    scale = 0.666,
+    "json_output" : "Cetaout.json",
+    "pdf_output" : "Cetaout.pdf"
+} 
+
+
+

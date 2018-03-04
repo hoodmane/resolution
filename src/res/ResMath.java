@@ -29,7 +29,7 @@ public final class ResMath
         this.p = p;
         this.q = 2*p - 2;
         inverseTable = new int[p];
-        factorialTable = new int[p];        
+        factorialTable = new int[p];   
         initializeFactorialTable();
     }
   
@@ -62,8 +62,8 @@ public final class ResMath
             if ((e&1) == 1){
                 r = (r*b)%p;
                 b = (b*b)%p; 
-                e >>= 1;
             }
+            e >>= 1;            
         }
         return r;
     }
@@ -150,6 +150,15 @@ public final class ResMath
         }
         BINOM_CACHE.put(key,binom);
         return binom;
+    }
+
+    int factorial(int n) {
+        if(n>=p){
+            return 0;
+        } else if(n<0) {
+//            throw new Exception() 
+        }
+        return factorialTable[n];
     }
 
 

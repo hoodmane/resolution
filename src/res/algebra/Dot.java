@@ -21,7 +21,7 @@ public class Dot<T extends GradedElement<T>> implements Comparable<Dot<T>>
     
     @Override public String toString()
     {
-        String ret = sq.toString() + "(" + base.deg[1] + ";" + base.idx + ")";
+        String ret = sq.toString() + "(" +(base.deg[1] - base.deg[0])+ "," +  base.deg[0]  + ";" + base.idx + ")";
         if(deg.length > 2) {
             ret += "(";
             for(int g = 2; g < deg.length; g++) {

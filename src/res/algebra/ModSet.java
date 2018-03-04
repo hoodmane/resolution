@@ -2,6 +2,7 @@ package res.algebra;
 
 import res.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /* A formal F_p-linear combination of things of type T. */
 public class ModSet<T> extends TreeMap<T,Integer>
@@ -93,15 +94,9 @@ public class ModSet<T> extends TreeMap<T,Integer>
     public String toString(Stringifier<T> strf) {
         if(isEmpty())
             return "0";
-        String s = "";
-        for(Map.Entry<T,Integer> e : entrySet()) {
-            if(s.length() != 0)
-                s += " + ";
-            if(e.getValue() != 1)
-                s += e.getValue();
-            s += strf.toString(e.getKey());
-        }
-        return s;
+        return entrySet().stream().map(e -> 
+            (e.getValue()!=1 ? e.getValue() : "") + strf.toString(e.getKey())
+        ).collect(Collectors.joining(" + "));
     }
 }
 

@@ -19,12 +19,16 @@ public class JSONModule extends GradedModule<Sq> {
       actions: a generator ==> a map from integers (presumably representing some P^n) ==> a DModSet which represents an Fp linear combination of 
                elements of the module.
    */
+//  Just used for construction
+    private final JsonSpecification spec;
+    private final Map<String,Dot<Sq>> variableMap;
+    
     private final int p;
     private final AlgebraFactory factory;
     private final DModSet<Sq> zero;
-    
-    private Map<Integer,ArrayList<Dot<Sq>>> gens = new TreeMap<>();
-    private Map<Dot<Sq>,Map<Integer,DModSet<Sq>>> actions = new TreeMap<>();
+            
+    private final Map<Integer,ArrayList<Dot<Sq>>> gens;
+    private final Map<Dot<Sq>,Map<Integer,DModSet<Sq>>> actions;
     
     /**
      * Get the i-index of a map from Integers to Lists, but if the i-index does not exist, populate
@@ -45,40 +49,39 @@ public class JSONModule extends GradedModule<Sq> {
     }
 
 
-    /* Match: P10(x1) or b(y) or Sq2(x0). Group 1: "P" or "b" or "Sq", Group 2: "10" or "" or "2", Group 3: "x1" or "y" or "x0" */
-    private static final Pattern LHSPAT = Pattern.compile("\\s*([A-Za-z]*)(\\d*)\\s*\\(\\s*([\\w\\^]*)\\s*\\)\\s*");
-    /* Match: 2 x1 or 2*x1 or 2x1. Group 1: "2" Group 2: "x1" */
-    private static final Pattern TERMPAT = Pattern.compile("\\s*(-?\\s*\\d*)\\s*\\*?\\s*([\\w\\^]*)");
-    
+    // Match: x1 
     private static final Pattern VARPAT = Pattern.compile("[A-Za-z]+[\\w\\^]*");
 
     /**
      * Construct a GradedModule by parsing a list of generators and relations. The generators and relations are gotten directly from
      * the user from the configuration JSON file for the run, and the relations are given as a list of strings which need a fair amount of parsing.
      * 
-     * @param generators A list of generators formatted as a map varName ==> degree 
-     * @param relations  A list of relations. Each relation is a string of the form "P^n(
+     * @param spec
      * @throws ParseException 
      */
     public JSONModule(JsonSpecification spec) throws ParseException{
+        this.spec = spec;
         this.p = spec.p;        
+        this.variableMap = new TreeMap<>();
+        this.gens = new TreeMap<>();
+        this.actions = new TreeMap<>();        
         this.zero = new DModSet<>(p);
+        
         Map<String, Integer> generators = spec.generators;
-        List<String> relations = spec.relations;
+        List<String> relationStrings = spec.relations;
         factory = AlgebraFactory.getInstance(p);
         // Default to the sphere.
         if(generators==null){
-            generators = new TreeMap<String,Integer>();
+            generators = new TreeMap<>();
             generators.put("x", 0);
         }
         
         // Default to no relations (a wedge of spheres)
-        if(relations==null){
-            relations = new ArrayList<>();
+        if(relationStrings==null){
+            relationStrings = new ArrayList<>();
         }
         
         /* Variable name ==> internal generator object */
-        Map<String,Dot<Sq>> variableMap = new TreeMap<>();
 
         // Get the variable list and their degrees
         for(Map.Entry<String, Integer> entry : generators.entrySet()){
@@ -95,92 +98,23 @@ public class JSONModule extends GradedModule<Sq> {
             actions.put(d,new TreeMap<>());
         }
         
+        VectorEvaluator.VectorEvaluationContext evaluationContext = new VectorEvaluator.VectorEvaluationContext(p);
+        
         VectorEvaluator evaluator = new VectorEvaluator(generators);
-    
-        for(final ListIterator<String> it = relations.listIterator(); it.hasNext();){
-            String rel = it.next();
-            if(rel == null){
-                continue; // Handle trailing comma in relation list (GSON inserts a null into the list).
+        for(String relStr : relationStrings){
+            Collection<relation> relations = evaluator.evaluateRelation(relStr, evaluationContext);
+            for(relation rel : relations){
+                DModSet<Sq> outputSet = new DModSet<>(p);
+                for(Map.Entry<String, Integer> e : rel.RHS.getVector().entrySet()){
+                    outputSet.add(variableMap.get(e.getKey()),e.getValue());
+                }                
+                actions.get(variableMap.get(rel.inputVariable)).put(rel.operatorDegree,outputSet);   
             }
-            
-            //  Set up some error messages
-	    final String relationInfo = "relation number " + it.nextIndex() + ": \"" + rel + "\""; 
-	    final String LHSErrorString = "Invalid left hand side in "  + relationInfo + "\n"
-               + "Valid relations must have left hand side of the form \"b(<variable>)\", \"Sq<int>(<variable>)\", or \"P<int>(<variable>)\"\n";
-
-	    rel=" " + rel + " "; // Pad with spaces on either end to ensure that trailing "=" causes error.
-	    String[] eqSplit = rel.split("=");
-            if(eqSplit.length < 2){
-               throw new ParseException("No equals sign in "  + relationInfo,0);
-            } else if(eqSplit.length > 2) {
-               throw new ParseException("Multiple equals signs in "  + relationInfo,0);
-            }
-            String LHS = eqSplit[0].trim();
-            String RHS = eqSplit[1].trim();
-	    Matcher LHSmatcher = LHSPAT.matcher(LHS); 
-	    if(!LHSmatcher.find()){
-              throw new ParseException(LHSErrorString,0);
-            }
-
-
-            boolean shouldBeBeta = false;
-            boolean isBeta = false;
-            String operatorType = LHSmatcher.group(1);
-            String operatorNumberString = LHSmatcher.group(2);
-            String operatorName = LHSmatcher.group(1) + LHSmatcher.group(2);
-	    int operatorDegree;
-            try {
-               operatorDegree = Integer.parseInt(operatorNumberString); 
-            } catch (NumberFormatException e) {
-               if(operatorNumberString.isEmpty()){ // Empty is fine as long as expression is "beta(x)"
-                  operatorDegree = 0;
-                  shouldBeBeta = true;
-               } else {
-                  throw new ParseException(LHSErrorString,0); // Invalid number (I'm not sure how to reach this).
-               }
-            }
-
-            switch(operatorType){
-	      case "Sq" : 
-                 break;
-              case "P":
-                 operatorDegree *= spec.q;
-                 break;
-              case "b":
-                 operatorDegree = 1;
-                 isBeta = true;
-                 break;
-              default: // Isn't of the form "Sq", "P" or "b"
-                 throw new ParseException(LHSErrorString,0);
-             }
-             if(isBeta && ! shouldBeBeta){ 
-                 throw new ParseException(LHSErrorString,0); // "P" or "Sq" with missing number
-             } else if(! isBeta && shouldBeBeta) {
-                  throw new ParseException(LHSErrorString,0);// "b" with number                 
-             }
-
-             String inputVariableName = LHSmatcher.group(3);
-             if(!variableMap.containsKey(inputVariableName))
-                 throw new ParseException("Unknown variable \"" + inputVariableName + "\" in " + relationInfo,1);
-             Dot<Sq> inputVariable = variableMap.get(LHSmatcher.group(3));
-             int inputVariableDegree = inputVariable.deg[1];
-             
-            VectorEvaluator.VectorEvaluationContext evaluationContext = new VectorEvaluator.VectorEvaluationContext()
-                    .setDegree(inputVariableDegree + operatorDegree)
-                    .setLHSGenerator(inputVariableName)
-                    .setLHSOperator(operatorType)
-                    .setRelationInfo(relationInfo);
-            // Convert + into +- so that - is part of coefficient.
-            RHS = RHS.replace("-","+-");
-            Map<String, Integer> vector = evaluator.evaluate(RHS,evaluationContext).getVector();
-            DModSet<Sq> outputSet = new DModSet<>(p);
-            for(Map.Entry<String, Integer> e : vector.entrySet()){
-                outputSet.add(variableMap.get(e.getKey()),e.getValue());
-            }
-            actions.get(inputVariable).put(operatorDegree,outputSet);
         }
+                      
     }
  
+    
     @Override public Iterable<Dot<Sq>> basis(int deg)
     {
         ArrayList<Dot<Sq>> alist = gens.get(deg);

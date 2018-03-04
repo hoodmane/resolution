@@ -20,5 +20,6 @@ public interface Backend<T extends MultigradedElement<T>, U extends MultigradedV
     public int num_gradings();
 
     public void addListener(PingListener l);
+    public void removeListener(PingListener l);
 }
 
