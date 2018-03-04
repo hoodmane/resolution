@@ -29,9 +29,14 @@ import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 class relation { 
+    String operatorName;
     int operatorDegree;
     String inputVariable;
     vector RHS;
+    @Override
+    public String toString(){
+        return operatorName + "(" + inputVariable + ")"  + " = " + RHS.toString();
+    }
 }
 
 class vector {
@@ -220,11 +225,6 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     private final Map<String,Integer> variableSet;
 
     private final Tokenizer myTokenizer;
-    
-    private enum State {
-        LHS,
-        RHS
-    }
 
     public static class VectorEvaluationContext implements AbstractVariableSet<vector> {
         private int degree;
@@ -233,7 +233,6 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         private String relationInfo;
         private String LHSOperator;
         private String LHSGenerator;
-        private State state = State.LHS;
         private final Map<String,Integer> iteratorVariables;
         public VectorEvaluationContext(int p) {
             super();
@@ -446,7 +445,9 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     
     public Collection<relation> evaluateRelation(String expression, VectorEvaluationContext evaluationContext) {      
         final Iterator<String> tokens = tokenize(expression);
-        return evaluateRelation(tokens,evaluationContext);
+        Collection<relation> result = evaluateRelation(tokens,evaluationContext);
+        result.forEach(System.out::println);
+        return result;
     }
     
     private static final Pattern OPERATOR_PAT = Pattern.compile("(Sq|P|b)\\^?(.*)");
@@ -474,7 +475,6 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         boolean isBeta = false;
         String operatorType = matcher.group(1);
         String operatorNumberString = matcher.group(2);
-        String operatorName = matcher.group(1) + matcher.group(2);
         int operatorDegree;
         if(operatorNumberString.isEmpty()){ // Empty is fine as long as expression is "beta(x)"
             operatorDegree = 0;
@@ -486,11 +486,11 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
               throw new IllegalArgumentException(""); // Invalid number (I'm not sure how to reach this).
            }        
         }
-        
+        String operatorName = matcher.group(1) + operatorDegree;
         switch(operatorType){
             case "Sq" : 
                 break;
-            case "P":
+            case "P": 
                 operatorDegree *= evaluationContext.q;
                 break;
             case "b":
@@ -529,6 +529,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         vector RHS = evaluate(tokens,evaluationContext);
         relation rel = new relation();
         rel.inputVariable = inputVariable;
+        rel.operatorName = operatorName;
         rel.operatorDegree = operatorDegree;
         rel.RHS = RHS;
         List<relation> ret = new ArrayList();
@@ -903,7 +904,8 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         varSet.put("x22",2);
         varSet.put("y",2);        
         VectorEvaluator evaluator = new VectorEvaluator(varSet);
-        VectorEvaluationContext context = new VectorEvaluationContext(11).setDegree(2).setLHSGenerator("x").setLHSOperator("P1").setRelationInfo("");
+        VectorEvaluationContext context = new VectorEvaluationContext(7).setDegree(2).setLHSGenerator("x").setLHSOperator("P1").setRelationInfo("");
+        doIt(evaluator, "binom(2,0) x", context);
         doIt(evaluator, "5-1-1", context);
         doIt(evaluator, "sum(i x_i_{4-i},{i,3})", context);
         doIt(evaluator, "sum(sum(2i x_i_j,{i,3-j}),{j,2})", context);

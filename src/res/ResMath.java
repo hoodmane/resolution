@@ -61,8 +61,8 @@ public final class ResMath
         while (e > 0){
             if ((e&1) == 1){
                 r = (r*b)%p;
-                b = (b*b)%p; 
             }
+            b = (b*b)%p; 
             e >>= 1;            
         }
         return r;
@@ -161,5 +161,11 @@ public final class ResMath
         return factorialTable[n];
     }
 
+    public static void main(String[] args){
+        ResMath instance = getInstance(11);
+        for(int n=1; n<11; n++){
+            System.out.println(n + "^2 = " + instance.power_mod(5,n));
+        }
+    }
 
 }
