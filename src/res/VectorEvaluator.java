@@ -195,6 +195,7 @@ class vector {
  * <br>It supports the logical OR (+), AND (*) and NEGATE (-) operators.
  */
 public class VectorEvaluator extends AbstractEvaluator<vector> {
+    private static final int INFINITY = 10000; // Big enough.
     /** The negate unary operator.*/
     private static final Operator FACTORIAL = new Operator("!", 1, Operator.Associativity.LEFT, 4);
     private static final Operator NEGATE = new Operator("-", 1, Operator.Associativity.RIGHT, 3);
@@ -341,9 +342,12 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     String substituteVariableName(String varName, Object ec){
         VectorEvaluationContext evaluationContext = (VectorEvaluationContext) ec;
         String[] split = varName.split("_");
+        int p = evaluationContext.p;
+        evaluationContext.p = INFINITY;
         String ret = split[0] + Arrays.stream(split).skip(1)
                 .map(s -> String.valueOf(evaluate(s,evaluationContext).getInt()))
                 .collect(Collectors.joining());
+        evaluationContext.p = p;
         return ret;
     }
     
@@ -450,7 +454,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         return result;
     }
     
-    private static final Pattern OPERATOR_PAT = Pattern.compile("(Sq|P|b)\\^?(.*)");
+    private static final Pattern OPERATOR_PAT = Pattern.compile("(Sq|P|b|bP)\\^?(.*)");
     public Collection<relation> evaluateRelation(Iterator<String> toks,Object ec){
         VectorEvaluationContext evaluationContext = (VectorEvaluationContext)ec;
         PeekingIterator<String> tokens = PeekingIterator.getInstance(toks);
@@ -492,6 +496,10 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
                 break;
             case "P": 
                 operatorDegree *= evaluationContext.q;
+                break;
+            case "bP": 
+                operatorDegree *= evaluationContext.q;
+                operatorDegree++;
                 break;
             case "b":
                 operatorDegree = 1;

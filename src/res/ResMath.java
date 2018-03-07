@@ -161,11 +161,4 @@ public final class ResMath
         return factorialTable[n];
     }
 
-    public static void main(String[] args){
-        ResMath instance = getInstance(11);
-        for(int n=1; n<11; n++){
-            System.out.println(n + "^2 = " + instance.power_mod(5,n));
-        }
-    }
-
 }

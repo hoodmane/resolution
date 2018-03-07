@@ -1,2 +1,5 @@
-{"prime" : 3, "generators" : {"x0" : 0, "x1" : 4, "x2" : 8}, "relations" : 
-    ["table(table(Pi(x_j) = binom(i+j,j) x_{i+j},{i,1,p-1-j}),{j,0,p-2})"], "T_max" : 200, "tex_output" : "X3.tex", "json_output" : "X3-out.json"}
+{"prime" : 3, "generators" : {"x0" : 0, "x4" : 4, "x8" : 8}, 
+    "relations" : [
+        "table(table(Pi(x_{4*j}) = binom(i+j,j) x_{4*(i+j)},{i,1,p-1-j}),{j,0,p-2})"
+    ], 
+    "T_max" : 200, "tex_output" : "X3.tex", "json_output" : "X3-out.json"}
