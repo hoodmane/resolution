@@ -1,1 +1,1 @@
-{"prime" : 3, "generators" : {"x0" : 0}, "T_max" : 200}
+{"prime" : 3, "generators" : {"x0" : 0}, "T_max" : 100,"tex_output" : "S3.tex"}

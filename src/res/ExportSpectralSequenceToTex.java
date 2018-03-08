@@ -14,6 +14,7 @@ public class ExportSpectralSequenceToTex {
     private final StringBuilder classes;
     private final StringBuilder structlines;
     private final StringBuilder output;
+    private final int p,q;
     
     private final String texHead = "\\documentclass{spectralsequence-example}\n\\makeatletter\n\\begin{document}\n";
     private final String beginSseqpage = "\\begin{sseqpage}[scale to fit width =\\textwidth-10pt,scale to fit height=\\textheight-10pt]\n";
@@ -22,8 +23,10 @@ public class ExportSpectralSequenceToTex {
         {"cblack", "cred", "cgreen", "cblue", "corange","cpurple","ccyan","cmagenta","clime","cpink","cteal","clavender","cbrown","cbeige","cmaroon" };
     SpectralSequence sseq;
     
-    public ExportSpectralSequenceToTex(SpectralSequence sseq){
+    public ExportSpectralSequenceToTex(SpectralSequence sseq,int p){
         this.sseq = sseq;
+	this.p = p;
+	this.q = 2*p-2;
         classes = new StringBuilder(20*sseq.totalGens());
         structlines = new StringBuilder(20*sseq.totalGens());
         output = new StringBuilder(40*sseq.totalGens());
@@ -58,7 +61,7 @@ public class ExportSpectralSequenceToTex {
     private void addClass(SseqClass g){
         int x = g.getDegree()[0];
         int y = g.getDegree()[1];
-        classes.append(String.format("\\sseq@qclassnamed[\\sseq@qcolor{%s}](%d,%d){%s}\n",colorStrings[(y-x)%8], y-x,x,g.getName()));
+        classes.append(String.format("\\sseq@qclassnamed[\\sseq@qcolor{%s}](%d,%d){%s}\n",colorStrings[(y-x)%q], y-x,x,g.getName()));
     }
     
     private void addStructline(Structline sl){

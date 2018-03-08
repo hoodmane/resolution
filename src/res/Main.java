@@ -142,7 +142,7 @@ public class Main {
                 sseq, settings
             ).start();
         if(spec.tex_output!=null){
-            back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(sseq).writeToFile("out/"+spec.tex_output);});
+            back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(sseq,spec.p).writeToFile("out/"+spec.tex_output);});
         }
         
         if(spec.json_output!=null){

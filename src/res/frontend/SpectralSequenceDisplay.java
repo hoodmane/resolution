@@ -263,7 +263,6 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         } else {
             setSelected(-1,-1);
         }
-        System.out.println(getMaxX());
     }
     @Override public void mousePressed(MouseEvent evt) { mouseDown = true; }
     @Override public void mouseReleased(MouseEvent evt) { mouseDown = false; }

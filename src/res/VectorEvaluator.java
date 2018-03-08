@@ -404,7 +404,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
 //          Case 3:  it's an iterator
             return vector.getScalar(evaluationContext.getIteratorVariableValue(literal) * coefficient,evaluationContext.p);
         } else {
-            throw new IllegalArgumentException("");
+            throw new IllegalArgumentException(literal);
         }
     }
 
@@ -454,7 +454,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         return result;
     }
     
-    private static final Pattern OPERATOR_PAT = Pattern.compile("(Sq|P|b|bP)\\^?(.*)");
+    private static final Pattern OPERATOR_PAT = Pattern.compile("(Sq|bP|P|b)\\^?(.*)");
     public Collection<relation> evaluateRelation(Iterator<String> toks,Object ec){
         VectorEvaluationContext evaluationContext = (VectorEvaluationContext)ec;
         PeekingIterator<String> tokens = PeekingIterator.getInstance(toks);
@@ -534,6 +534,8 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         tokens.next();
 //      The rest is a vector expression.
         evaluationContext.setDegree(operatorDegree + inputDegree);
+        evaluationContext.setLHSOperator(operatorName);
+	evaluationContext.setLHSGenerator(inputVariable);
         vector RHS = evaluate(tokens,evaluationContext);
         relation rel = new relation();
         rel.inputVariable = inputVariable;
