@@ -1,4 +1,4 @@
-package res;
+package res.fileio;
 
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -102,8 +102,8 @@ public class JSONModule extends GradedModule<Sq> {
         
         VectorEvaluator evaluator = new VectorEvaluator(generators);
         for(String relStr : relationStrings){
-            Collection<relation> relations = evaluator.evaluateRelation(relStr, evaluationContext);
-            for(relation rel : relations){
+            Collection<Relation> relations = evaluator.evaluateRelation(relStr, evaluationContext);
+            for(Relation rel : relations){
                 DModSet<Sq> outputSet = new DModSet<>(p);
                 for(Map.Entry<String, Integer> e : rel.RHS.getVector().entrySet()){
                     outputSet.add(variableMap.get(e.getKey()),e.getValue());

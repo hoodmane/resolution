@@ -1,4 +1,4 @@
-package res;
+package res.fileio;
 
 import java.io.File;
 import java.io.FileWriter;

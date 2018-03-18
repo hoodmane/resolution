@@ -1,4 +1,4 @@
-package res;
+package res.fileio;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

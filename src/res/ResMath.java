@@ -109,7 +109,7 @@ public final class ResMath
      * @param k <= p
      * @return n choose k mod p
      */
-    int binom_small(int n, int k){
+    private int binom_small(int n, int k){
         if(k>n){
             return 0;
         }
@@ -152,7 +152,7 @@ public final class ResMath
         return binom;
     }
 
-    int factorial(int n) {
+    public int factorial(int n) {
         if(n>=p){
             return 0;
         } else if(n<0) {
