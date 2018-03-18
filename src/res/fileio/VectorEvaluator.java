@@ -126,13 +126,14 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         }
         
 //      If the string has "$relationInfo" in it, replace that with relationString, otherwise append it at end.
-        public IllegalArgumentException getErrorMessage(String msg){
+        @Override
+        public IllegalArgumentException getError(String msg){
             if(msg.contains(RELATION_INFO_PLACEHOLDER)){
                 return new IllegalArgumentException(msg.replaceAll(RELATION_INFO_PLACEHOLDER + "\\s*", relationString));
             } else {
                 return new IllegalArgumentException((msg + " in relation " + relationString).trim());
             }
-        }        
+        }     
         
         String substituteVariables(String s){
             for(Map.Entry<String, Integer> e : iteratorVariables.entrySet()){
@@ -234,7 +235,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
      * @return the literal converted to a vector
      */
     @Override
-    protected vector toValue(Token literalTok, Object ec) {
+    protected vector toValue(Token literalTok, EvaluationContext ec) {
         VectorEvaluationContext evaluationContext = (VectorEvaluationContext) ec;
         String literal = literalTok.getLiteral();
 //      Split into integer coefficient and remaining actual "literal"
@@ -252,7 +253,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
             try {
                 coefficient = Integer.parseInt(coefficientString);
             } catch(NumberFormatException e) {
-                throw evaluationContext.getErrorMessage(
+                throw evaluationContext.getError(
                     String.format("Coefficient %s for literal %s in relation $relationInfo is invalid.", coefficientString, literal));
             }
         }
@@ -276,7 +277,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
 //          Case 3:  it's an iterator
             return vector.getScalar(evaluationContext.getIteratorVariableValue(literal) * coefficient,evaluationContext.p);
         } else {
-            throw evaluationContext.getErrorMessage("Invalid literal " + literal);
+            throw evaluationContext.getError("Invalid literal " + literal);
         }
     }
 
@@ -300,7 +301,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
 //      Here we expect an operator symbol
         Matcher matcher = OPERATOR_PAT.matcher(strToken);
         if(!matcher.find()){
-            throw evaluationContext.getErrorMessage("Expected an operator (either \"Sq\", \"b\", \"P\", or \"bP\") instead of " + strToken);   
+            throw evaluationContext.getError("Expected an operator (either \"Sq\", \"b\", \"P\", or \"bP\") instead of " + strToken);   
         }
 
         boolean shouldBeBeta = false;
@@ -341,9 +342,9 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         }        
 
         if(isBeta && ! shouldBeBeta){ 
-            throw evaluationContext.getErrorMessage(""); // "P" or "Sq" with missing number
+            throw evaluationContext.getError(""); // "P" or "Sq" with missing number
         } else if(! isBeta && shouldBeBeta) {
-            throw evaluationContext.getErrorMessage("");// "b" with number                 
+            throw evaluationContext.getError("");// "b" with number                 
         }        
         
 //      Now we should see a basis vector in parenthesis.
@@ -357,7 +358,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         
         String inputVariable = substituteVariableName(inputVariableName,evaluationContext);
         if(!variableSet.containsKey(inputVariable)){
-            throw evaluationContext.getErrorMessage("Unknown variable " + inputVariableName);
+            throw evaluationContext.getError("Unknown variable " + inputVariableName);
         }
         int inputDegree = variableSet.get(inputVariable);
 //      Now the RHS
@@ -386,7 +387,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     }    
     
     @Override
-    protected vector evaluate(Operator operator, Iterator<vector> operands, Object evaluationContext) {
+    protected vector evaluate(Operator operator, Iterator<vector> operands, EvaluationContext evaluationContext) {
         // Implementation of supported operators
         vector o1 = operands.next();
         if (operator == NEGATE) {
@@ -408,7 +409,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     }
     
     @Override
-    protected vector evaluate(Function function, Iterator<vector> arguments, Object evaluationContext) {
+    protected vector evaluate(Function function, Iterator<vector> arguments, EvaluationContext evaluationContext) {
       if (function == BINOMIAL) {
         // Implements the new function
         return vector.binom(arguments.next(),arguments.next());
@@ -419,7 +420,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     }    
 
     @Override
-    public vector evaluate(String expression, Object evaluationContext) {      
+    public vector evaluate(String expression, EvaluationContext evaluationContext) {      
         final Collection<Token> tokens = tokenize(expression);
         return evaluate(tokens.iterator(),evaluationContext);
     }
@@ -440,21 +441,21 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
                 stack.push(token);
                 if (previous!=null && previous.isFunction()) {
                     if (!functionBrackets.containsKey(token.getBrackets().getOpen())) {
-                        throw token.getError("Invalid bracket after function: "+strToken);
+                        throw evaluationContext.getError("Invalid bracket after function: "+strToken,token);
                     }
                 } else {
                     if (!expressionBrackets.containsKey(token.getBrackets().getOpen())) {
-                        throw new IllegalArgumentException("Invalid bracket in expression: "+strToken);
+                        throw evaluationContext.getError("Invalid bracket in expression: "+strToken,token);
                     }
                 }
                 //// If the open bracket follows a a literal or a close parenthesis, there is an implicit multiplication.
                 insertImplicitMultiplicationIfNeeded(previous,values,stack,evaluationContext);
             } else if (token.isCloseBracket()) {
                 if (previous==null) {
-                    throw new IllegalArgumentException("expression can't start with a close bracket");
+                    throw evaluationContext.getError("expression can't start with a close bracket",token);
                 }
                 if (previous.isFunctionArgumentSeparator()) {
-                    throw new IllegalArgumentException("argument is missing");
+                    throw evaluationContext.getError("argument is missing",token);
                 }
                 BracketPair brackets = token.getBrackets();
                 // If the token is a right parenthesis:
@@ -468,7 +469,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
                             openBracketFound = true;
                             break;
                         } else {
-                            throw evaluationContext.getErrorMessage("Invalid parenthesis match "+sc.getBrackets().getOpen()+brackets.getClose());
+                            throw evaluationContext.getError("Invalid parenthesis match "+sc.getBrackets().getOpen()+brackets.getClose());
                         }
                     } else {
                         output(values, sc, evaluationContext);
@@ -477,7 +478,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
                 if (!openBracketFound) {
                     // If the stack runs out without finding a left parenthesis, then
                     // there are mismatched parentheses.
-                    throw evaluationContext.getErrorMessage("Parentheses mismatched");
+                    throw evaluationContext.getError("Parentheses mismatched",token);
                 }
                 if (!stack.isEmpty() && stack.peek().isFunction()) {
                     // If the token at the top of the stack is a function token, pop it
@@ -487,12 +488,12 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
                 }
             } else if (token.isFunctionArgumentSeparator()) {
                 if (previous==null) {
-                    throw evaluationContext.getErrorMessage("expression can't start with a function argument separator");
+                    throw evaluationContext.getError("expression can't start with a function argument separator",token);
                 }
                 // Verify that there was an argument before this separator
                 if (previous.isOpenBracket() || previous.isFunctionArgumentSeparator()) {
                     // The cases were operator miss an operand are detected elsewhere.
-                    throw evaluationContext.getErrorMessage("argument is missing");
+                    throw evaluationContext.getError("argument is missing",token);
                 }
                 // If the token is a function argument separator
                 boolean pe = false;
@@ -509,14 +510,14 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
                 if (!pe) {
                     // If no left parentheses are encountered, either the separator was misplaced
                     // or parentheses were mismatched.
-                    throw evaluationContext.getErrorMessage("Separator or parentheses mismatched");
+                    throw evaluationContext.getError("Separator or parentheses mismatched",token);
                 } else {
                     // Verify we are in function scope
                     Token openBracket = stack.pop();
                     Token scopeToken = stack.peek();
                     stack.push(openBracket);
                     if (!scopeToken.isFunction()) {
-                        throw evaluationContext.getErrorMessage("Argument separator used outside of function scope");
+                        throw evaluationContext.getError("Argument separator used outside of function scope",token);
                     }
                 }
             } else if (token.isFunction()) {
@@ -530,7 +531,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
                     try {
                         values.push(results.stream().reduce(vector::add).get());
                     } catch(NoSuchElementException e) {
-                        throw evaluationContext.getErrorMessage("Empty sum range");
+                        throw evaluationContext.getError("Empty sum range");
                     }                    
                 } else {
                     stack.push(token);
@@ -555,12 +556,12 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         while (!stack.isEmpty()) {
             Token sc = stack.pop();
             if (sc.isOpenBracket() || sc.isCloseBracket()) {
-                throw evaluationContext.getErrorMessage("Parentheses mismatched");
+                throw evaluationContext.getError("Parentheses mismatched",sc);
             }
             output(values, sc, evaluationContext);
         }
         if (values.size()!=1) {
-            throw evaluationContext.getErrorMessage("");
+            throw evaluationContext.getError("");
         }
         vector pop = values.pop();
         return pop;
@@ -573,7 +574,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         while(strToken.endsWith("_")){
             final StringBuilder str = new StringBuilder(strToken);
             if(!tokens.hasNext()){
-                throw evaluationContext.getErrorMessage("");
+                throw evaluationContext.getError("");
             }
             t = tokens.next().getString();            
             boolean success = false;
@@ -591,7 +592,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
                 }
             }
             if(!success){
-                throw evaluationContext.getErrorMessage("");
+                throw evaluationContext.getError("");
             }
             if(tokens.peek().getString().startsWith("_")){
                 str.append(tokens.next());
@@ -603,19 +604,19 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
 
     private void expectedToken(PeekingIterator<Token> tokens,String expectedToken,VectorEvaluationContext evaluationContext){
         if(!tokens.hasNext()){
-            throw evaluationContext.getErrorMessage("Unexpected end of expression");
+            throw evaluationContext.getError("Unexpected end of expression");
         }
         if(!expectedToken.equals(tokens.peek().getString())){
-            throw tokens.peek().getError("Expected " + expectedToken + " but instead " + tokens.peek().getString());
+            throw evaluationContext.getError("Expected " + expectedToken + " but instead " + tokens.peek().getString(),tokens.peek());
         }
     }
 
     private void expectedToken(PeekingIterator<Token> tokens,Predicate<Token> pred,VectorEvaluationContext evaluationContext){
         if(!tokens.hasNext()){
-            throw evaluationContext.getErrorMessage("Unexpected end of expression");
+            throw evaluationContext.getError("Unexpected end of expression");
         }
         if(!pred.test(tokens.peek())){
-            throw tokens.peek().getError("Unexpected token " + tokens.peek().getString());
+            throw evaluationContext.getError("Unexpected token " + tokens.peek().getString(),tokens.peek());
         }
     }    
     
@@ -652,7 +653,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
                 expression.add(token);
                 parens -- ;
                 if(parens<0){
-                    throw evaluationContext.getErrorMessage("");
+                    throw evaluationContext.getError("Missing iterator variable",token);
                 }
             } else if(token.isFunctionArgumentSeparator()) {
                 if(parens > 0){
@@ -673,7 +674,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
             previous = token;
         }
         if(!success){
-            throw evaluationContext.getErrorMessage("");
+            throw evaluationContext.getError("Unexpected end of expression",previous);
         }
         
         expectedToken(tokens,"{",evaluationContext);
@@ -685,8 +686,9 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         ArrayList<Token> argTokens = new ArrayList<>();
         ArrayList<Integer> args = new ArrayList<>(3);
         success = false;
+        Token token = null;
         while (tokens.hasNext()) {
-            final Token token = tokens.next();
+            token = tokens.next();
             final String strToken = token.getString();
             if("}".equals(strToken)){
                 args.add(evaluate(argTokens.iterator(),evaluationContext).getInt());
@@ -700,7 +702,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
             }
         }
         if(!success){
-            throw evaluationContext.getErrorMessage("");
+            throw evaluationContext.getError("Unexpected end of expression",token);
         }
         expectedToken(tokens,")",evaluationContext);
         tokens.next();
@@ -709,7 +711,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         int step = 1;        
         switch(args.size()){
             case 0:
-                throw evaluationContext.getErrorMessage("");
+                throw evaluationContext.getError("");
             case 1:
                 max = args.get(0);
                 break;
@@ -723,7 +725,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
                 step = args.get(2);
                 break;    
             default:
-                throw evaluationContext.getErrorMessage("");
+                throw evaluationContext.getError("Too many iterator entries (expected at most 4: {variable,min,max,step})");
         }
         
         final VectorEvaluationContext vectEvaluationContext = (VectorEvaluationContext) evaluationContext;
@@ -741,13 +743,13 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
     
     
     //// If there are two literals in a row, or a close parenthesis followed by a literal, there is an implicit multiplication.
-    private void insertImplicitMultiplicationIfNeeded(Token previous, Deque<vector> values, Deque<Token> stack, Object evaluationContext) {
-        if(previous!=null && (previous.isLiteral() || previous.isCloseBracket() || (previous.isOperator() && previous.getOperator() == FACTORIAL))){
+    private void insertImplicitMultiplicationIfNeeded(Token previous, Deque<vector> values, Deque<Token> stack, EvaluationContext evaluationContext) {
+        if(previous != null && (previous.isLiteral() || previous.isCloseBracket() || (previous.isOperator() && previous.getOperator() == FACTORIAL))){
             handleOperator(Token.buildOperator(TIMES),values,stack,evaluationContext);
         }
     }    
 
-    private void handleOperator(Token token,Deque<vector> values,Deque<Token> stack,Object evaluationContext){
+    private void handleOperator(Token token, Deque<vector> values, Deque<Token> stack, EvaluationContext evaluationContext){
         // If the token is an operator, op1, then:
         while (!stack.isEmpty()) {
             Token sc = stack.peek();
