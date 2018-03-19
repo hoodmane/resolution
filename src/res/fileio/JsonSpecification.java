@@ -24,6 +24,7 @@ public class JsonSpecification {
     public double xscale;
     public double yscale;
     public double scale;
+    public boolean windowed = true;
     
     private static final Gson gson = new GsonBuilder().create();
     

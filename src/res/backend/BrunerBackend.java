@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import res.fileio.JsonSpecification;
 import res.spectralsequencediagram.*;
 
 
@@ -20,6 +21,7 @@ public class BrunerBackend<T extends GradedElement<T>>
 
     private final int p;
     private int T_max;
+    private final boolean windowed;    
     private final ResMath resmath;
     private final AlgebraFactory factory;
     private final GradedAlgebra<T> alg;
@@ -51,12 +53,13 @@ public class BrunerBackend<T extends GradedElement<T>>
         return totalGens;
     }
 
-    public BrunerBackend(GradedAlgebra<T> alg,GradedModule<T> m,int T_max) {
+    public BrunerBackend(GradedAlgebra<T> alg,GradedModule<T> m,JsonSpecification spec) {
         this.alg = alg;
         this.module = m;
-        this.T_max = T_max;
+        this.T_max = spec.T_max;
+        this.windowed = spec.windowed;
         dec = new CompoundDecorated<>(this);
-        this.p = m.getP();
+        this.p = spec.p;
         resmath = ResMath.getInstance(p);
         factory = AlgebraFactory.getInstance(p);
 

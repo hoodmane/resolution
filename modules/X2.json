@@ -1,0 +1,3 @@
+{"prime" : 2, "generators" : {"x0" : 0, "x1" : 2}, 
+    "relations" : ["P1(x0) = 1 x1"], 
+    "T_max" : 70, "tex_output" : "X2.tex", "json_output" : "X2-out.json"}

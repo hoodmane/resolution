@@ -1,15 +1,11 @@
 # binaries and environment
 bin/
 build/
-dist/
-nbproject/
-resolution.jar
 *.zip
 
 # environment
 sandbox/
 refs/
-lib/
 
 # other code
 aux/
@@ -22,5 +18,3 @@ stage/
 publish
 
 /nbproject/private/
-/build/
-/dist/

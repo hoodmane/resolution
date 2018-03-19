@@ -365,6 +365,7 @@ public class VectorEvaluator extends AbstractEvaluator<vector> {
         expectedToken(tokens,"=",evaluationContext);
         tokens.next();
 //      The rest is a vector expression.
+
         evaluationContext.setDegree(operatorDegree + inputDegree);
         evaluationContext.setLHSOperator(operatorName);
 	evaluationContext.setLHSGenerator(inputVariable);

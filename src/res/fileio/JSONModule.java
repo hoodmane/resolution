@@ -38,7 +38,7 @@ public class JSONModule extends GradedModule<Sq> {
      * @param i an index
      * @return either ith index of the map or a new empty list
      */
-    static <T> ArrayList<T> getAndInitializeIfNeeded(Map<Integer,ArrayList<T>> map, int i) {
+    static <T> ArrayList<T> getAndInitializeIfNecessary(Map<Integer,ArrayList<T>> map, int i) {
         ArrayList<T> alist = map.get(i);
         if(alist == null) {
             ArrayList<T> ret = new ArrayList<>(1);
@@ -62,6 +62,9 @@ public class JSONModule extends GradedModule<Sq> {
     public JSONModule(JsonSpecification spec) throws ParseException{
         this.spec = spec;
         this.p = spec.p;        
+        if(p == 0){
+            throw new ParseException("You must specify a prime.",0);
+        }
         this.variableMap = new TreeMap<>();
         this.gens = new TreeMap<>();
         this.actions = new TreeMap<>();        
@@ -90,7 +93,7 @@ public class JSONModule extends GradedModule<Sq> {
                throw new ParseException("Invalid variable name \"" + varName + "\"",0);
             }  
             int deg = entry.getValue();
-            ArrayList<Dot<Sq>> gensEntry = getAndInitializeIfNeeded(gens,deg);
+            ArrayList<Dot<Sq>> gensEntry = getAndInitializeIfNecessary(gens,deg);
             Generator<Sq> g = new Generator<>(p,new int[] {-1,deg,0},gensEntry.size());
             Dot<Sq> d = new Dot<>(g, factory.UNIT);
             variableMap.put(varName,d);

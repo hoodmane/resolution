@@ -137,13 +137,15 @@ public class Main {
     {
         JsonElement json = spec.json;
         /* backend */
-        BrunerBackend<T> back = new BrunerBackend<>(alg,mod,spec.T_max);
+        BrunerBackend<T> back = new BrunerBackend<>(alg,mod,spec);
         SpectralSequence sseq = new BackendWrapperSseq(back,spec.p);
-        DisplaySettings settings = SseqJson.GSON.fromJson(json,DisplaySettings.class);
-        SpectralSequenceDisplay display = 
-            SpectralSequenceDisplay.constructFrontend(
-                sseq, settings
-            ).start();
+        DisplaySettings settings = SseqJson.GSON.fromJson(json,DisplaySettings.class);        
+        if(spec.windowed){
+            SpectralSequenceDisplay display = 
+                SpectralSequenceDisplay.constructFrontend(
+                    sseq, settings
+                ).start();
+        }
         if(spec.tex_output!=null){
             back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(sseq,spec.p).writeToFile("out/"+spec.tex_output);});
         }
@@ -158,6 +160,7 @@ public class Main {
                 }
             });
         }
+        
                 
 //        if(spec.pdf_output!=null){
 //            back.registerDoneCallback(() -> { 
