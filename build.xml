@@ -71,7 +71,7 @@
 
     -->
     
- <target name="package-for-store" depends="jar">
+ <target name="-post-jar">
     <property name="store.jar.name" value="resolution"/>
     <property name="store.dir" value="store"/>
     <property name="store.jar" value="${store.dir}/${store.jar.name}.jar"/>
@@ -90,5 +90,6 @@
         excludes="META-INF/*.SF, META-INF/*.DSA, META-INF/*.RSA"/>
     </zip>
     <delete file="${store.dir}/temp_final.jar"/>
+    <copy file="${store.jar}" todir=""/>    
 </target>    
 </project>
