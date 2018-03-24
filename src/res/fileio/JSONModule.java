@@ -105,6 +105,9 @@ public class JSONModule extends GradedModule<Sq> {
         
         VectorEvaluator evaluator = new VectorEvaluator(generators);
         for(String relStr : relationStrings){
+            if(relStr == null || "".equals(relStr)){
+                continue;
+            }
             Collection<Relation> relations = evaluator.evaluateRelation(relStr, evaluationContext);
             for(Relation rel : relations){
                 DModSet<Sq> outputSet = new DModSet<>(p);

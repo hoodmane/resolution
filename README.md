@@ -28,7 +28,10 @@ If there are features you'd like to see in this program, please get in touch!
 
 # Input format
 
-Input is a json file. The simplest possible file that will run is `{prime: 2}` which will resolve the sphere at 2. Fields:
+Input is a json file. The simplest possible file that will run is `{prime: 2}` which will resolve the sphere at 2. 
+The "modules" directory contains a bunch of working json files for standard Steenrod modules which should get you started.
+
+Fields:
 
 - `prime`: An integer, the prime that you are working at. This field is mandatory, if it is missing resolution will quit with an error.
 

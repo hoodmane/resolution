@@ -1,0 +1,13 @@
+{
+    "prime" : 2,
+    "generators" : { "x0" : 0, "x4" : 4, "x6" : 6, "x7" : 7},
+    "relations" : [
+        "Sq4(x0) = x4",
+        "Sq2(x4) = x6",
+        "Sq1(x6) = x7",
+        "Sq6(x0) = x6",
+        "Sq7(x0) = x7",
+        "Sq3(x4) = x7"
+    ],
+    "T_max" : 50
+}
