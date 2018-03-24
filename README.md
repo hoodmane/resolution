@@ -14,9 +14,12 @@ There are also various output formats.
 
 # How to use
 
-Running the program requires only the file `resolution.jar`, available at 
+Running resolution requires only the file `resolution.jar`, available at 
 
-http://github.com/hoodmane/resolution/dist/resolution.jar
+http://github.com/hoodmane/resolution/resolution.jar
+
+To run the program, call `java -jar resolution.jar inputFile.json`, or if this is too long for you and you have a unix-style system (or windows and Cygwin bash), 
+run `./resolution inputFile.json`.
 
 For trigraded computations in the 2D viewer, there are controls to limit the visible range for the third grading; these are also jointly controlled by the PgUp and PgDn keys on your keyboard, in case you want to quickly step through cross-sections.
 
@@ -25,7 +28,7 @@ If there are features you'd like to see in this program, please get in touch!
 
 # Input format
 
-Input is as a json file. Fields:
+Input is a json file. The simplest possible file that will run is `{prime: 2}` which will resolve the sphere at 2. Fields:
 
 - `prime`: An integer, the prime that you are working at. This field is mandatory, if it is missing resolution will quit with an error.
 

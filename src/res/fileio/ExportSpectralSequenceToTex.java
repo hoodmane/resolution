@@ -54,7 +54,7 @@ public class ExportSpectralSequenceToTex {
             fileWriter.close();
             System.out.println(filename);
         } catch(IOException e) {
-            System.out.println("error");
+            System.out.println("Failed to write tex to file " + filename);
         }
     }
     

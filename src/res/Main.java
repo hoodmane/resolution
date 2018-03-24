@@ -18,6 +18,10 @@ import javax.swing.JOptionPane;
 
 import java.text.ParseException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -50,8 +54,12 @@ public class Main {
 
     static SettingsDialog sd;
     
-    public static void main(String[] args)
-    {
+    public static void main(String[] args){
+        if(args.length == 0){
+            System.out.println("You must run resolution with an argument which should be a JSON file with fields detailed in \"README.md\".\n"
+                    + "For example, to resolve the sphere, make a file \"S2.json\" containing \"{prime=2}\" and call \"./resolution S2.json\".");
+            return;
+        }
         JsonParser parser = new JsonParser();
         try {
             JsonObject json = parser.parse(new FileReader(new File(args[0]))).getAsJsonObject();
@@ -74,7 +82,6 @@ public class Main {
     static void displaySpectralSequence(JsonElement json){
         DisplaySettings fromJson = SseqJson.GSON.fromJson(json, DisplaySettings.class);
         ((JsonObject) json).entrySet().forEach(e -> System.out.println(e.getKey() +" : " + e.getValue()));
-        System.out.println("ysc: " +         fromJson.getYScale());
         SpectralSequenceDisplay.constructFrontend(
             SseqJson.GSON.fromJson(json,SpectralSequence.class),
             SseqJson.GSON.fromJson(json, DisplaySettings.class)
@@ -109,10 +116,10 @@ public class Main {
         }
         
         if(spec.T_max == 0){
-            spec.T_max = 50;
+            spec.T_max = T_MAX_DEFAULT;
         }
         
-
+        System.out.println(spec.T_max);
         Matcher match;
         if(spec.algebra == null || "steenrod".equals(spec.algebra.toLowerCase())){
              startBruner(new SteenrodAlgebra(spec.p), sqmod,spec);
@@ -146,20 +153,33 @@ public class Main {
                     sseq, settings
                 ).start();
         }
-        if(spec.tex_output!=null){
-            back.registerDoneCallback(() -> {new ExportSpectralSequenceToTex(sseq,spec.p).writeToFile("out/"+spec.tex_output);});
-        }
         
-        if(spec.json_output!=null){
-            back.registerDoneCallback(() -> {
-                try {
-                    SseqJson.ExportSseq(sseq,settings).writeToFile("out/"+spec.json_output);
-                } catch (IOException ex) {
-                    System.out.println("Failed to write to out/"+spec.json_output);
-//                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+       if(spec.tex_output != null || spec.json_output != null){
+           Path outputDirectory = Paths.get("resolution-out");
+            try {           
+                if(!Files.isDirectory(outputDirectory)){
+                    Files.createDirectories(outputDirectory);
                 }
-            });
-        }
+                
+                if(spec.tex_output!=null){
+                    back.registerDoneCallback(() -> {
+                            new ExportSpectralSequenceToTex(sseq,spec.p).writeToFile("resolution-out/"+spec.tex_output);});
+                }
+
+                if(spec.json_output!=null){
+                    back.registerDoneCallback(() -> {
+                        try {
+                            SseqJson.ExportSseq(sseq,settings).writeToFile("resolution-out/"+spec.json_output);
+                        } catch (IOException ex) {
+                            System.out.println("Failed to write to out/"+spec.json_output);
+        //                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    });
+                }                
+            } catch (IOException ex) {
+                System.out.println("Output directory resolution-out does not exist and I failed to create it, won't produce output files.");
+            }           
+       }
         
                 
 //        if(spec.pdf_output!=null){

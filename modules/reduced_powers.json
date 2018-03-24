@@ -1,6 +1,6 @@
 {
     "prime" : 3,
     "algebra" : "P",
-    "max_stem" : 200,
+    "T_max" : 50,
     "tex_output" : "ext_reduced_powers.tex"
 }
