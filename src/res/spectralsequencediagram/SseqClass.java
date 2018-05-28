@@ -16,8 +16,9 @@ public interface SseqClass {
     int[] getDegree();
     
     Collection<Structline> getStructlines();
-    Collection<Structline> getDifferentials();
-    int getDeathPage();
+    Collection<Differential> getOutgoingDifferentials();
+    int getPage();
+    boolean drawOnPageQ(int page);
     
     Shape getShape(int page);
     Color getColor(int page);

@@ -57,13 +57,13 @@ public class SseqClassSerializer implements JsonSerializer<SseqClass>{
         }
 
         @Override
-        public Collection<Structline> getDifferentials() {
+        public Collection<Differential> getOutgoingDifferentials() {
             throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
 
         @Override
-        public int getDeathPage() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        public int getPage() {
+            return 0;
         }
 
         @Override
@@ -89,6 +89,11 @@ public class SseqClassSerializer implements JsonSerializer<SseqClass>{
         @Override
         public void setColor(int page, Color color) {
             throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public boolean drawOnPageQ(int page) {
+            return true;
         }
         
     }

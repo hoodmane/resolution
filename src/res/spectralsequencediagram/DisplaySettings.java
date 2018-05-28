@@ -16,6 +16,11 @@ public class DisplaySettings {
     public int xgridstep, ygridstep;
     public String gridStyle;
     public int T_max;
+    public int[] page_list;
+    
+    // Is this a first quadrant, upper half plane, full plane spectral sequence?
+    public boolean x_full_range;  // if true, full plane in x direction
+    public boolean y_full_range;  // if true, full plane in y direction
     
     public double getXScale(){
         if(xscale==0){

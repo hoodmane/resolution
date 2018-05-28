@@ -29,13 +29,28 @@ public class BasedLineDecoration<T extends SseqClass> implements Structline {
     }
 
     @Override
-    public Shape getShape() {
+    public Shape getShape(int page) {
         return new Line2D.Double(0,0,1,0);        
     }
 
     @Override
-    public Color getColor() {
+    public Color getColor(int page) {
         return color;
+    }
+
+    @Override
+    public int getPage() {
+        return 0;
+    }
+
+    @Override
+    public Structline setPage(int page) {
+        return this;
+    }
+
+    @Override
+    public boolean drawOnPageQ(int page) {
+        return true;
     }
 }
 

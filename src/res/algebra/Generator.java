@@ -3,6 +3,7 @@ import java.awt.Color;
 import java.awt.Shape;
 import java.awt.geom.Ellipse2D;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import res.spectralsequencediagram.*;
 
@@ -29,6 +30,16 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
 //        System.out.println("setting color");
         this.color = color;
     }    
+
+    @Override
+    public int getPage() {
+        return 0;
+    }
+
+    @Override
+    public Collection<Differential> getOutgoingDifferentials() {
+        return Collections.EMPTY_SET;
+    }
     
     public static interface StructlineProducer {
         Collection<Structline> get();
@@ -94,11 +105,6 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
 
 
     @Override
-    public int getDeathPage() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
     public Shape getShape(int page) {
         return new Ellipse2D.Double( 0, 0, 6, 6);
     }
@@ -107,10 +113,10 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
     public Collection<Structline> getStructlines() {
         return structlineGetter.get();
     }
-
+    
     @Override
-    public Collection<Structline> getDifferentials() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
+    public boolean drawOnPageQ(int page) {
+        return true;
+    }    
 
 }

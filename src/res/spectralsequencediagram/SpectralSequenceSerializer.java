@@ -30,7 +30,7 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
         SseqToSerialize ts = new SseqToSerialize();
         ts.num_gradings = t.num_gradings();
         ts.classes = t.getClasses();
-        ts.structlines = t.getStructlines();
+        ts.structlines = t.getStructlines(0);
         ts.T_max = t.getTMax();
         return jsc.serialize(ts,SseqToSerialize.class);
     }
@@ -96,11 +96,11 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
 
         @Override
         public Collection<SseqClass> getClasses(int x, int y) {
-            return getClasses(new int[] {x,y});
+            return getClasses(new int[] {x,y},0);
         }
 
         @Override
-        public Collection<SseqClass> getClasses(int[] p) {
+        public Collection<SseqClass> getClasses(int[] p,int page) {
             List<DeserializedSseqClass> c = classesByDegree.get(new IntPair(p));
             if(c!=null){
                 return Collections.unmodifiableCollection(c);
@@ -110,7 +110,7 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
         }
 
         @Override
-        public Collection<Structline> getStructlines() {
+        public Collection<Structline> getStructlines(int page) {
             return Collections.unmodifiableCollection(structlines);
         }
 
@@ -147,6 +147,11 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
         @Override
         public int getTMax() {
             return T_max;
+        }
+
+        @Override
+        public Collection<Differential> getDifferentials(int page) {
+            return Collections.EMPTY_SET;
         }
 
     }

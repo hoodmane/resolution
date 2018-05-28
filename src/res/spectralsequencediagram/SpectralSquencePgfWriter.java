@@ -27,7 +27,7 @@ public class SpectralSquencePgfWriter {
     private Map<String,double[]> offsets;
     
     private void initializePositions(int[] degree){
-        Collection<SseqClass> classes = sseq.getClasses(degree);
+        Collection<SseqClass> classes = sseq.getClasses(degree,0);
         int s = classes.size();
         int i = 0;
         for(SseqClass c : classes){
@@ -61,7 +61,7 @@ public class SpectralSquencePgfWriter {
             s.append(String.format("\\mynode{%f}{%f}{%s}",position[0],position[1],c.getName()));
             return s;
         }).collect(Collectors.joining("\n")));
-        out.append(sseq.getStructlines().stream().map(sl->{
+        out.append(sseq.getStructlines(0).stream().map(sl->{
             StringBuffer s = new StringBuffer();
             s.append(String.format("\\linesourcetarget{%s}{%s}",sl.getSource().getName(),sl.getTarget().getName()));
             return s;

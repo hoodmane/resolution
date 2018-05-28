@@ -22,6 +22,7 @@ public class StructlineSerializer implements JsonSerializer<Structline> {
         StructlineToSerialize ts = new StructlineToSerialize();
         ts.sourceName = t.getSource().getName();
         ts.targetName = t.getTarget().getName();
+        ts.page = t.getPage();
 //        ts.shape = t.getShape();
 //        ts.color = t.getColor();
         return jsc.serialize(ts,StructlineToSerialize.class);
@@ -32,6 +33,7 @@ public class StructlineSerializer implements JsonSerializer<Structline> {
         String targetName;
         Shape shape;
         Color color;
+        int page;
     }            
     
     class DeserializedStructline implements Structline {
@@ -40,6 +42,7 @@ public class StructlineSerializer implements JsonSerializer<Structline> {
         String targetName;
         Shape shape;
         Color color;
+        int page;
         
         // internal
         DeserializedSseqClass source, target;
@@ -55,13 +58,29 @@ public class StructlineSerializer implements JsonSerializer<Structline> {
         }
 
         @Override
-        public Shape getShape() {
+        public Shape getShape(int page) {
             throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
 
         @Override
-        public Color getColor() {
+        public Color getColor(int page) {
             return color;
+        }
+
+        @Override
+        public int getPage() {
+            return this.page;
+        }
+
+        @Override
+        public Structline setPage(int page) {
+            this.page = page;
+            return this;
+        }
+
+        @Override
+        public boolean drawOnPageQ(int page) {
+            return true;
         }
         
     }

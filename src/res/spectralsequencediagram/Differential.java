@@ -5,23 +5,16 @@
  */
 package res.spectralsequencediagram;
 
-import java.awt.Color;
-import java.awt.Shape;
-
 /**
  *
  * @author Hood
  */
-public interface Structline extends SseqEdge {
+public interface Differential extends SseqEdge {
     SseqClass getSource();
     SseqClass getTarget();
-    Shape getShape(int page);
-    Color getColor(int page);
-    
     int getPage();
-    Structline setPage(int page);
     
     default boolean drawOnPageQ(int page){
-        return (this.getPage()<=page);
+        return (page == 0 || this.getPage()==page);
     }
 }

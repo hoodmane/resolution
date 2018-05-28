@@ -19,9 +19,10 @@ public interface SpectralSequence {
     
     Collection<SseqClass> getClasses();
     Collection<SseqClass> getClasses(int x, int y);
-    Collection<SseqClass> getClasses(int[] p);
+    Collection<SseqClass> getClasses(int[] p,int page);
     
-    Collection<Structline> getStructlines();
+    Collection<Structline> getStructlines(int page);
+    Collection<Differential> getDifferentials(int page);
     
     int getTMax();
     

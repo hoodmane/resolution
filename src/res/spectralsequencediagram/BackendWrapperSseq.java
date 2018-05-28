@@ -7,6 +7,7 @@ package res.spectralsequencediagram;
 
 import java.awt.Color;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.stream.Collectors;
 import res.algebra.PingListener;
 import res.backend.Backend;
@@ -58,7 +59,7 @@ public class BackendWrapperSseq implements SpectralSequence {
     }
 
     @Override
-    public Collection<SseqClass> getClasses(int[] degree) {
+    public Collection<SseqClass> getClasses(int[] degree,int page) {
         return setClassColors(back.getClasses(degree));
     }
 
@@ -67,7 +68,7 @@ public class BackendWrapperSseq implements SpectralSequence {
      * @return
      */
     @Override
-    public Collection<Structline> getStructlines() {
+    public Collection<Structline> getStructlines(int page) {
         Collection<SseqClass> classes = back.getClasses();
         return classes.stream().filter((g) -> g.getStructlines()!=null).flatMap((SseqClass g) -> g.getStructlines().stream()).collect(Collectors.toList());
     }
@@ -108,6 +109,11 @@ public class BackendWrapperSseq implements SpectralSequence {
     @Override
     public void removeListener(PingListener l) {
        back.removeListener(l);
+    }
+
+    @Override
+    public Collection<Differential> getDifferentials(int page) {
+        return Collections.EMPTY_SET;
     }
 
     
