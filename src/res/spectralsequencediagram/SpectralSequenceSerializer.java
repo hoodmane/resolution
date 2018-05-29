@@ -58,6 +58,7 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
         Collection<DeserializedSseqClass> classes;
         Collection<DeserializedStructline> structlines;
         double xscale, yscale;
+        List<Integer> page_list;
         
         // Internal fields:
         int total_gens;
@@ -78,7 +79,7 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
 //            System.out.println(classesByDegree.get(new int[] {0,0}).iterator().next().getName());
         }
         
-
+        
         @Override
         public int num_gradings() {
             return num_gradings;
@@ -152,6 +153,11 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
         @Override
         public Collection<Differential> getDifferentials(int page) {
             return Collections.EMPTY_SET;
+        }
+
+        @Override
+        public List<Integer> getPageList() {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
 
     }

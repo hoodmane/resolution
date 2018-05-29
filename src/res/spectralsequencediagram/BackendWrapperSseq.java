@@ -6,8 +6,10 @@
 package res.spectralsequencediagram;
 
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 import res.algebra.PingListener;
 import res.backend.Backend;
@@ -21,6 +23,7 @@ public class BackendWrapperSseq implements SpectralSequence {
     final Color[] colors;
     private final Backend back;
     private final int p;
+    private List<Integer> page_list;
     
     private static Color[] intervalColors(float angleFrom, float angleTo, int n) {
         float angleRange = angleTo - angleFrom;
@@ -39,6 +42,8 @@ public class BackendWrapperSseq implements SpectralSequence {
         this.back = back;
         this.p = p;
         this.colors = intervalColors(0,1,2*p-2);
+        this.page_list = new ArrayList<>(1);
+        this.page_list.add(0);
     }
     
     private Collection<SseqClass>  setClassColors(Collection<SseqClass> classes){
@@ -114,6 +119,11 @@ public class BackendWrapperSseq implements SpectralSequence {
     @Override
     public Collection<Differential> getDifferentials(int page) {
         return Collections.EMPTY_SET;
+    }
+
+    @Override
+    public List<Integer> getPageList() {
+        return page_list;
     }
 
     

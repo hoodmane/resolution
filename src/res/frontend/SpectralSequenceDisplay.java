@@ -5,6 +5,7 @@ import res.spectralsequencediagram.SseqEdge;
 import res.algebra.*;
 import res.transform.*;
 
+import java.util.List;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
@@ -92,7 +93,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     private final Timer screenPaintTimer;
     int page;
     int page_index;
-    int[] page_list;
+    List<Integer> page_list;
     
     public SpectralSequenceDisplay setPage(int page){
         this.page = page;
@@ -107,7 +108,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     
     public static SpectralSequenceDisplay constructFrontend(SpectralSequence sseq,DisplaySettings settings) {
         SpectralSequenceDisplay d = new SpectralSequenceDisplay(sseq,settings);
-        d.frame = new JFrame("Resolution");
+        d.frame = new JFrame(settings.getWindowName());
         d.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         d.frame.setSize(DEFAULT_WINDOW_WIDTH,DEFAULT_WINDOW_HEIGHT);        
         JFrame fr = d.frame;
@@ -132,7 +133,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         this.T_max = settings.T_max;        
         this.x_full_range = settings.x_full_range;
         this.y_full_range = settings.y_full_range;
-        this.page_list = settings.page_list;
+        this.page_list = sseq.getPageList();
         this.zoom = Math.log(xscale)/Math.log(ZOOM_BASE);        
         this.sseq = sseq;
         this.setupGradings();
@@ -617,7 +618,21 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         textarea.setText(ret);
     }
    
-
+    public void incrementPage(){
+        if(page_index > 0){
+            page_index --;
+        }
+        page = page_list.get(page_index);
+        repaint();
+    }
+    
+    public void decrementPage(){
+        if(page_index < page_list.size() - 1){
+            page_index ++;
+        }
+        page = page_list.get(page_index);
+        repaint();
+    }
 
     @Override
     public void windowOpened(WindowEvent e) {
@@ -668,26 +683,112 @@ class ControlPanel2D extends Box {
                     return false;
                 switch(e.getKeyCode()) {
                     case KeyEvent.VK_LEFT:
-                        if(parent.page_index > 0){
-                           parent.page_index --;
-                        }
-                        parent.page = parent.page_list[parent.page_index];
-                        parent.repaint();
+                        parent.incrementPage();
                         return true;
                     case KeyEvent.VK_RIGHT:
-                        if(parent.page_index < parent.page_list.length - 1 ){
-                            parent.page_index ++;
-                        }
-                        parent.page = parent.page_list[parent.page_index];
-                        parent.repaint();
+                        parent.decrementPage();
                         return true;
+                    case KeyEvent.VK_G:  
+                        handleGo();
+                        return true;                        
                     default:
                         return false;
                 }
             });
 
     }
+    
+    public void handleGo(){
+        
+    }
 
+    
+    public JMenuBar createMenuBar() {
+        JMenuBar menuBar;
+        JMenu menu, submenu;
+        JMenuItem menuItem;
+        JRadioButtonMenuItem rbMenuItem;
+        JCheckBoxMenuItem cbMenuItem;
+
+        //Create the menu bar.
+        menuBar = new JMenuBar();
+
+        //Build the first menu.
+        menu = new JMenu("A Menu");
+        menu.setMnemonic(KeyEvent.VK_A);
+        menu.getAccessibleContext().setAccessibleDescription(
+                "The only menu in this program that has menu items");
+        menuBar.add(menu);
+
+        //a group of JMenuItems
+        menuItem = new JMenuItem("A text-only menu item",
+                                 KeyEvent.VK_T);
+        //menuItem.setMnemonic(KeyEvent.VK_T); //used constructor instead
+        menuItem.setAccelerator(KeyStroke.getKeyStroke(
+                KeyEvent.VK_1, ActionEvent.ALT_MASK));
+        menuItem.getAccessibleContext().setAccessibleDescription(
+                "This doesn't really do anything");
+        menu.add(menuItem);
+
+//        ImageIcon icon = createImageIcon("images/middle.gif");
+//        menuItem = new JMenuItem("Both text and icon", icon);
+//        menuItem.setMnemonic(KeyEvent.VK_B);
+//        menu.add(menuItem);
+
+//        menuItem = new JMenuItem(icon);
+//        menuItem.setMnemonic(KeyEvent.VK_D);
+//        menu.add(menuItem);
+
+        //a group of radio button menu items
+        menu.addSeparator();
+        ButtonGroup group = new ButtonGroup();
+
+        rbMenuItem = new JRadioButtonMenuItem("A radio button menu item");
+        rbMenuItem.setSelected(true);
+        rbMenuItem.setMnemonic(KeyEvent.VK_R);
+        group.add(rbMenuItem);
+        menu.add(rbMenuItem);
+
+        rbMenuItem = new JRadioButtonMenuItem("Another one");
+        rbMenuItem.setMnemonic(KeyEvent.VK_O);
+        group.add(rbMenuItem);
+        menu.add(rbMenuItem);
+
+        //a group of check box menu items
+        menu.addSeparator();
+        cbMenuItem = new JCheckBoxMenuItem("A check box menu item");
+        cbMenuItem.setMnemonic(KeyEvent.VK_C);
+        menu.add(cbMenuItem);
+
+        cbMenuItem = new JCheckBoxMenuItem("Another one");
+        cbMenuItem.setMnemonic(KeyEvent.VK_H);
+        menu.add(cbMenuItem);
+
+        //a submenu
+        menu.addSeparator();
+        submenu = new JMenu("A submenu");
+        submenu.setMnemonic(KeyEvent.VK_S);
+
+        menuItem = new JMenuItem("An item in the submenu");
+        menuItem.setAccelerator(KeyStroke.getKeyStroke(
+                KeyEvent.VK_2, ActionEvent.ALT_MASK));
+        submenu.add(menuItem);
+
+        menuItem = new JMenuItem("Another item");
+        submenu.add(menuItem);
+        menu.add(submenu);
+
+        //Build second menu in the menu bar.
+        menu = new JMenu("Another Menu");
+        menu.setMnemonic(KeyEvent.VK_N);
+        menu.getAccessibleContext().setAccessibleDescription(
+                "This menu does nothing");
+        menuBar.add(menu);
+
+        return menuBar;
+    }
+    
+    
     private void setup_gui(final SpectralSequenceDisplay<?> parent){
 
         /* filtration sliders */
@@ -800,7 +901,7 @@ class ControlPanel2D extends Box {
         }
         add(Box.createVerticalStrut(20));
         */
-        
+//        parent.frame.setJMenuBar(createMenuBar());
         parent.textarea = new JTextArea();
         parent.textarea.setMaximumSize(new Dimension(250,3000));
         parent.textarea.setPreferredSize(new Dimension(250,3000));

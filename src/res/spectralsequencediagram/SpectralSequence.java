@@ -5,6 +5,7 @@
  */
 package res.spectralsequencediagram;
 
+import java.util.List;
 import java.util.Collection;
 import res.algebra.PingListener;
 
@@ -23,6 +24,8 @@ public interface SpectralSequence {
     
     Collection<Structline> getStructlines(int page);
     Collection<Differential> getDifferentials(int page);
+    
+    public List<Integer> getPageList();
     
     int getTMax();
     
