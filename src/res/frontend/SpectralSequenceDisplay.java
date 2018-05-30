@@ -1,6 +1,7 @@
 
 package res.frontend;
 
+import res.spectralsequencediagram.Style;
 import res.spectralsequencediagram.SseqEdge;
 import res.algebra.*;
 import res.transform.*;
@@ -356,6 +357,14 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         super.paintComponent(graphics);
         paintComponentHelper(graphics,transform);
         Graphics2D g = (Graphics2D) graphics;
+        
+        g.setRenderingHint(
+            RenderingHints.KEY_ANTIALIASING,
+            RenderingHints.VALUE_ANTIALIAS_ON);
+
+        g.setRenderingHint( RenderingHints.KEY_STROKE_CONTROL,
+                            RenderingHints.VALUE_STROKE_PURE);
+        
         /* draw side fill and axes */
         int bmy = getHeight() - MARGIN_WIDTH;
         g.setColor(getBackground());
@@ -478,16 +487,25 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
             final Color[] colors = new Color[] {Color.BLACK, Color.BLUE,Color.GREEN,Color.ORANGE};
             
             private void drawClass(SseqClass c){
-                g.setColor(c.getColor(page));
+                Style s = c.getStyle(page);
+                
+                g.setColor(s.getColor());
                 AffineTransform saveTransform = g.getTransform();
                 Point2D p = pos.get(c);
                 if(p==null){
                     return;
                 }
+                
 //              TODO: Figure out how to scale these dots so that they get bigger as we zoom in
 //              raising the scale factor to a power of 1.5
                 g.translate(p.getX() - 3 + transform.getScaleX()/2,p.getY() - 3 + transform.getScaleY()/2);
-                g.fill(AffineTransform.getScaleInstance(1, 1).createTransformedShape(c.getShape(page)));
+                
+                Shape transformedShape = AffineTransform.getScaleInstance(1, 1).createTransformedShape(s.getShape());
+                if(s.fillQ()){
+                    g.fill(transformedShape);
+                } else {
+                    g.draw(transformedShape);
+                }
                 g.setTransform(saveTransform);
             }                
         }
@@ -608,7 +626,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
             default:
                 ret += "Bidegree ("+x+","+y+")\n";
                 Collection<SseqClass> classes = sseq.getClasses(algToTopGrading(x,y),page);
-                for(SseqClass c : classes) if(isVisible(c)) {
+                for(SseqClass c : classes) if(isVisible(c) && c.getPage() >= page ) {
                     ret += "\n" + c.toString();
                     ret += "\n" + c.extraInfo();
                     ret += "\n";

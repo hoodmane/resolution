@@ -23,6 +23,10 @@ public interface SseqClass {
     Shape getShape(int page);
     Color getColor(int page);
     void setColor(int page,Color color);
+    
+    Style getStyle(int page);
+    SseqClass setStyle(Style s);
+    
     String extraInfo();
     String getName();
     

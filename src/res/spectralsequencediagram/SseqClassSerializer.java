@@ -95,6 +95,17 @@ public class SseqClassSerializer implements JsonSerializer<SseqClass>{
         public boolean drawOnPageQ(int page) {
             return true;
         }
+
+
+        @Override
+        public SseqClass setStyle(Style s) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public Style getStyle(int page) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
         
     }
 }

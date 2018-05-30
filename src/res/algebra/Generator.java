@@ -5,6 +5,7 @@ import java.awt.geom.Ellipse2D;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import res.spectralsequencediagram.Style;
 import res.spectralsequencediagram.*;
 
 
@@ -39,6 +40,16 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
     @Override
     public Collection<Differential> getOutgoingDifferentials() {
         return Collections.EMPTY_SET;
+    }
+
+    @Override
+    public Style getStyle(int page) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public SseqClass setStyle(Style s) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
     public static interface StructlineProducer {
