@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import res.spectralsequencediagram.BackendWrapperSseq;
 import res.spectralsequencediagram.DisplaySettings;
+import res.spectralsequencediagram.EmptySpectralSequence;
 import res.spectralsequencediagram.SpectralSequence;
 import res.spectralsequencediagram.SseqJson;
 
@@ -55,6 +56,16 @@ public class Main {
     static SettingsDialog sd;
     
     public static void main(String[] args){
+        
+//        DisplaySettings settings = new DisplaySettings();
+//        settings.T_max = 5000;
+//        settings.x_full_range = true;
+//        SpectralSequence empty_sseq = new EmptySpectralSequence();
+//        SpectralSequenceDisplay.constructFrontend(empty_sseq,settings).start();
+//        boolean end_now = true;
+//        if(end_now){
+//            return;
+//        }
         if(args.length == 0){
             System.out.println("You must run resolution with an argument which should be a JSON file with fields detailed in \"README.md\".\n"
                     + "For example, to resolve the sphere, make a file \"S2.json\" containing \"{prime=2}\" and call \"./resolution S2.json\".");

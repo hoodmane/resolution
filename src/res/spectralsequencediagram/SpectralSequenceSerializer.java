@@ -160,6 +160,16 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
             throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
 
+        @Override
+        public void executeJython(String acommand, ConsoleOutputCallback callback) {
+            return;
+        }
+
+        @Override
+        public String getQuery() {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
     }
     
     private class IntPair {

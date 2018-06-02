@@ -27,6 +27,12 @@ public interface SpectralSequence {
     
     public List<Integer> getPageList();
     
+    
+    public void executeJython(String commandString, ConsoleOutputCallback callback);
+//    public void addConsoleListener();
+    
+    public String getQuery();
+    
     int getTMax();
     
     int getState(int x, int y);

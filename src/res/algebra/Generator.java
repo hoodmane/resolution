@@ -18,18 +18,18 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
     public String extraInfo = "";
     private Collection<Structline> structlines;
     private StructlineProducer structlineGetter;
-    private Color color = Color.BLACK;
+    private Style style = new StandardStyle();
 
     @Override
     public Color getColor(int page) {
 //        System.out.println("getting color");
-        return this.color;
+        return style.getColor();
     }
     
     @Override
     public void setColor(int page,Color color) {
 //        System.out.println("setting color");
-        this.color = color;
+        style.setColor(color);
     }    
 
     @Override
@@ -44,12 +44,13 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
 
     @Override
     public Style getStyle(int page) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return style;
     }
 
     @Override
     public SseqClass setStyle(Style s) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        style = s;
+        return this;
     }
     
     public static interface StructlineProducer {

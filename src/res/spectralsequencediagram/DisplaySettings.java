@@ -23,6 +23,7 @@ public class DisplaySettings {
     public boolean x_full_range;  // if true, full plane in x direction
     public boolean y_full_range;  // if true, full plane in y direction
     
+    
     public String getWindowName(){
         if(windowName != null){
             return windowName;

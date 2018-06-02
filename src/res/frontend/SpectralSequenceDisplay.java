@@ -1,4 +1,3 @@
-
 package res.frontend;
 
 import res.spectralsequencediagram.Style;
@@ -19,277 +18,147 @@ import java.util.Set;
 
 import javax.swing.*;
 import javax.swing.event.*;
+import javax.swing.UIManager;
 import res.spectralsequencediagram.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.text.DefaultCaret;
 import res.frontend.BevelArrows.CurvedArrow;
 
 public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JPanel 
-        implements PingListener, MouseMotionListener, MouseListener, MouseWheelListener, WindowListener 
+        implements MouseMotionListener, MouseListener, MouseWheelListener, WindowListener, ActionListener
 {
-    final static int DEFAULT_MINFILT = 0;
-    final static int DEFAULT_MAXFILT = 100;
-    
-    final static int TICK_STEP_LOG_BASE = 10;
-    final static double ZOOM_BASE = 1.1;
     final static int DEFAULT_WINDOW_WIDTH = 1600;
     final static int DEFAULT_WINDOW_HEIGHT = 800;
     final static int MARGIN_WIDTH = 30;
-    final static double TICK_GAP = 20;
-    final static double BLOCK_FACTOR = 30;
-    
-    // These are for output to pdf.
-    final static int PAGE_HEIGHT = 300;
-    final static int PAGE_WIDTH  = PAGE_HEIGHT * 16/9; // Screens have a 16 x 9 aspect ratio.
-
-    final static Color transparent = new Color(0,0,0,0);
-    final static CurvedArrow curvedArrow = new CurvedArrow();
-    final static AffineTransform ID_TRANSFORM = AffineTransform.getRotateInstance(0);
-    AffineTransform transform;
-    AffineTransform inverseTransform = new AffineTransform();
-    
-    
-    final static Map<Integer,Color> STATE_COLORS = new HashMap();
-    static {
-        STATE_COLORS.put(MultigradedVectorSpace.STATE_NOT_COMPUTED,Color.black);
-        STATE_COLORS.put(MultigradedVectorSpace.STATE_STARTED,Color.darkGray);
-        STATE_COLORS.put(MultigradedVectorSpace.STATE_PARTIAL,Color.yellow);
-        STATE_COLORS.put(MultigradedVectorSpace.STATE_VANISHES,Color.lightGray);
-        STATE_COLORS.put(MultigradedVectorSpace.STATE_DONE,transparent);
-    }
-    
-    Decorated<U, ? extends MultigradedVectorSpace<U>> dec;
-    MultigradedVectorSpace<U> under;
-    SpectralSequence sseq;
-
-    int[] minfilt;
-    int[] maxfilt;
-    int T_max;
-    boolean x_full_range; // Allow negative x?
-    boolean y_full_range; // Allow negative y?
-    
-    final double scale_aspect_ratio; 
-    final double scale_aspect_ratio_log;
-    double zoom = 0;
-    // Derived in updateOffsets():
-    double scale, xscale, yscale;  
-    private int xtickstep;
-    private int ytickstep;
-    private int xgridstep;
-    private int ygridstep;
-    
     // selected x, selected y. Initialize to a large negative value representing "no selection".
     int selx = -10000;
     int sely = selx;
     int mousex = -1000;
-    int mousey = -1000;    
+    int mousey = -1000;
+    boolean mouseDown;
+   
     
-    private Stroke gridStroke = new BasicStroke();
-    private Stroke lineStroke = new BasicStroke();
-    
-    private boolean mouseDown;
     JFrame frame;
     JTextArea textarea;
-
-    private final Timer screenPaintTimer;
-    int page;
-    int page_index;
-    List<Integer> page_list;
+    JPanel consolePanel;    
+    JScrollPane consoleOutputPane;
+    public  JTextArea consoleOutputText;
+    JTextField consoleInput;
+    boolean consoleOpen;
+    int consoleWidth = 3000;
+    int consoleHeight = 250;
+    Dimension openConsoleDimension = new Dimension(2000,295);   
+    Dimension closedConsoleDimension = new Dimension(2000,35);
     
-    public SpectralSequenceDisplay setPage(int page){
-        this.page = page;
-        return this;
-    }
-    
-    public int getPage(){
-        return this.page;
-    }
-    
-
+    SpectralSequenceCanvas canvas;
+    SpectralSequence sseq;
+   
+    private SpectralSequenceDisplay(){}
     
     public static SpectralSequenceDisplay constructFrontend(SpectralSequence sseq,DisplaySettings settings) {
-        SpectralSequenceDisplay d = new SpectralSequenceDisplay(sseq,settings);
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (ClassNotFoundException ex) {
+            Logger.getLogger(SpectralSequenceDisplay.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InstantiationException ex) {
+            Logger.getLogger(SpectralSequenceDisplay.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IllegalAccessException ex) {
+            Logger.getLogger(SpectralSequenceDisplay.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (UnsupportedLookAndFeelException ex) {
+            Logger.getLogger(SpectralSequenceDisplay.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        SpectralSequenceDisplay d = new SpectralSequenceDisplay();
+        d.sseq = sseq;
+        d.canvas = new SpectralSequenceCanvas(d,sseq,settings);        
+        d.setPreferredSize(new Dimension(1000,1000));
         d.frame = new JFrame(settings.getWindowName());
         d.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         d.frame.setSize(DEFAULT_WINDOW_WIDTH,DEFAULT_WINDOW_HEIGHT);        
         JFrame fr = d.frame;
-        fr.getContentPane().add(d, BorderLayout.CENTER);
+       
+        Font font = d.getFont().deriveFont((float)16);        
+        d.consoleOutputText = new JTextArea(20,20);
+        d.consoleOutputText.setText("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+        d.consoleOutputText.setMaximumSize(new Dimension(d.consoleHeight,d.consoleWidth));
+        d.consoleOutputText.setPreferredSize(new Dimension(d.consoleHeight,d.consoleWidth));
+//        consoleTextArea.setEditable(false);
+        d.consoleOutputText.setLineWrap(true);
+        d.consoleOutputText.setMargin( new Insets(10,10,10,10) ); 
+        d.consoleOutputText.setFont(font);      
+        
+        d.consoleOutputPane = new JScrollPane(d.consoleOutputText, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        d.consoleOutputPane.setPreferredSize(new Dimension(10,250));
+        d.consoleOutputPane.setAlignmentX(-1.0f);
+//      Scroll to bottom of console output pane
+        d.consoleOutputPane.getVerticalScrollBar().setValue(d.consoleOutputPane.getVerticalScrollBar().getMaximum());
+        
+
+        DefaultCaret caret = (DefaultCaret)d.consoleOutputText.getCaret();
+        caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+        
+        d.consoleInput = new JTextField(0);
+        d.consoleInput.setFont(font);
+        d.consoleInput.setMargin( new Insets(0,10,0,10) ); 
+
+        d.consoleInput.addActionListener(d);          
+        
+        fr.getContentPane().add(d.canvas, BorderLayout.CENTER);
+//        fr.getContentPane().add(d.consoleArea,BorderLayout.SOUTH);  
+        d.consolePanel = new JPanel();
+        d.consolePanel.setLayout(new GridBagLayout());
+        d.consolePanel.setPreferredSize(d.closedConsoleDimension);        
+        GridBagConstraints c = new GridBagConstraints();
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.anchor = GridBagConstraints.SOUTH;
+        c.weightx = 1;
+        c.weighty = 1.0; 
+        c.gridx = 0;
+        c.gridy = 0;
+//        c.anchor = GridBagConstraints.PAGE_END;
+        d.consolePanel.add(d.consoleOutputPane,c);
+        c.gridx = 0;
+        c.gridy = 1;
+        d.consolePanel.add(d.consoleInput,c);
+        d.consolePanel.revalidate();
+//        fr.getContentPane().add(textField,BorderLayout.SOUTH);   
         fr.getContentPane().add(new ControlPanel2D(d), BorderLayout.EAST);
-        d.addMouseListener(d);
-        d.addMouseMotionListener(d);
-        d.addMouseWheelListener(d);
+        fr.getContentPane().add(d.consolePanel,BorderLayout.SOUTH);
+        d.consoleOpen = false;
+        d.consoleOutputPane.setVisible(false);
+        
+        
+        
+        d.canvas.addMouseListener(d);
+        d.canvas.addMouseMotionListener(d);
+        d.canvas.addMouseWheelListener(d);
         d.frame.addWindowListener(d);
-        sseq.addListener(d);
         return d;
     }
     
-    
-    SpectralSequenceDisplay(SpectralSequence sseq,DisplaySettings settings){
-        this.screenPaintTimer = new Timer(40,new updateScreenIfNeeded());
-        this.transform = new AffineTransform();
-        xscale = settings.getXScale();
-        yscale = settings.getYScale();
-        scale_aspect_ratio = yscale/xscale;
-        scale_aspect_ratio_log = Math.log(scale_aspect_ratio)/Math.log(ZOOM_BASE);
-        this.T_max = settings.T_max;        
-        this.x_full_range = settings.x_full_range;
-        this.y_full_range = settings.y_full_range;
-        this.page_list = sseq.getPageList();
-        this.zoom = Math.log(xscale)/Math.log(ZOOM_BASE);        
-        this.sseq = sseq;
-        this.setupGradings();
-        updateTransform();
-        screenPaintTimer.start();
-    }
-    
-    private boolean needsRepainting;
-    
-            
-    class updateScreenIfNeeded implements ActionListener{
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            if(needsRepainting){
-                repaint();
-                needsRepainting = false;
+    @Override
+    public void actionPerformed(ActionEvent e)
+    {
+        this.sseq.executeJython(consoleInput.getText(), (String str) -> {
+                consoleOutputText.append(str);
+                canvas.repaint();                
             }
-        }
-    }
-
-
-    void requestRepaint(){
-        needsRepainting = true;
-    }
-    
-    @Override public void ping(int[] deg) {
-        int[] topDeg = algToTopGrading(deg[0],deg[1]);
-        if(topDeg[0] < getMaxX() && !mouseDown){
-            repaint();
-        }
-        int[] s = algToTopGrading(selx, sely);
-        if(deg[0] == s[0] && deg[1] == s[1]){
-            setSelected(selx,sely); // updates text
-        }
+        );
     }    
     
+            
     
-    private void setupGradings() {
-        int i;
-        if(minfilt == null) {
-            i = 0;
-            minfilt = new int[sseq.num_gradings()];
-            maxfilt = new int[sseq.num_gradings()];
-        } else if(minfilt.length != sseq.num_gradings()) {
-            i = minfilt.length;
-            minfilt = Arrays.copyOf(minfilt, sseq.num_gradings());
-            maxfilt = Arrays.copyOf(maxfilt, sseq.num_gradings());
-        } else return;
-
-        for(; i < minfilt.length; i++) {
-            minfilt[i] = DEFAULT_MINFILT;
-            maxfilt[i] = DEFAULT_MAXFILT;
-        } 
-    }
-
-
     public SpectralSequenceDisplay<U> start(){
-        this.frame.setVisible(true);
+        this.frame.setVisible(true);     
         return this;
     }
     
-    void updateTransform(){
-        scale = Math.pow(ZOOM_BASE,zoom);
-        xscale = scale;
-        yscale = scale * scale_aspect_ratio;
-        xtickstep = 5;
-        ytickstep = 5;
-        
-        for(double i = -zoom; i > 0; i -= TICK_STEP_LOG_BASE) xtickstep *= 2;
-        for(double i = (-zoom - scale_aspect_ratio_log); i > 0; i -= TICK_STEP_LOG_BASE ) ytickstep *= 2;
-        
-        xgridstep = (xtickstep / 10 == 0) ? 1 : xtickstep / 10 ;
-        ygridstep = (ytickstep / 10 == 0) ? 1 : ytickstep / 10 ;        
-        try {
-            inverseTransform = transform.createInverse();
-        } catch (NoninvertibleTransformException ex) {
-            Logger.getLogger(SpectralSequenceDisplay.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
-    /**
-     * getScreenX converts the x chart coordinate into an x screen coordinate. 
-     * Make sure this is the inverse of getChartX(x) if you make any changes! 
-     * @param x chart coordinate
-     * @return screen coordinate
-     */
-    double getScreenX(double sx) {
-        Point2D.Double p = new Point2D.Double(sx,0);
-        return transform.transform(p,p).getX();
-    }
-    double getScreenY(double sy) {
-        Point2D.Double p = new Point2D.Double(0,sy);
-        return transform.transform(p,p).getY();
-    }
-    
-    
-    /**
-     * getChartX converts the x screen coordinate into an x chart coordinate.
-     * Make sure this is the inverse of getSX(cx) if you make any changes!
-     * @param cx screen coordinate
-     * @return chart coordinate
-     */
-    double getChartX(double cx) {
-        Point2D.Double p = new Point2D.Double(cx,0);
-        return inverseTransform.transform(p,p).getX();
-    }
-    
-    double getChartY(double cy) {
-        Point2D.Double p = new Point2D.Double(0,cy);
-        try {
-            return transform.inverseTransform(p,p).getY();
-        } catch (NoninvertibleTransformException ex) {
-            Logger.getLogger(SpectralSequenceDisplay.class.getName()).log(Level.SEVERE, null, ex);
-            return 0;
-        }
-    }
-    
-    int getMinX(){
-        int min_x_visible = (int) getChartX(-3*transform.getScaleX());
-        if(!x_full_range && min_x_visible < 0){
-            min_x_visible = 0;
-        }
-        return min_x_visible;
-    }
-    
-    int getMinY(){
-        int min_y_visible = (int) getChartY((getHeight() - 3*transform.getScaleY()));
-        if(!y_full_range && min_y_visible < 0){
-            min_y_visible = 0;
-        }        
-        return  min_y_visible;
-    }
-    
-    int getMaxX(){
-        return (int) getChartX(getWidth() + 3*transform.getScaleX()) + 10;
-    }
-    
-    int getMaxY(){
-        return (int) getChartY(3*transform.getScaleY()) + 10;
-    }
-
-    void setGridStroke(Stroke s){
-        this.gridStroke = s;
-    }
-
-    void setLineStroke(Stroke s){
-        this.lineStroke = s;
-    }
-    
     @Override public void mouseClicked(MouseEvent evt) {
-        repaint();
-        int x = (int) getChartX(evt.getX());
-        int y = (int) getChartY(evt.getY());
-        if((x >= 0 || this.x_full_range) && ( y >= 0 || this.y_full_range ) ) {
-            setSelected(x,y);
+        this.canvas.repaint();
+        int x = (int) canvas.getChartX(evt.getX());
+        int y = (int) canvas.getChartY(evt.getY());
+        if((x >= 0 || canvas.x_full_range) && ( y >= 0 || canvas.y_full_range ) ) {
+            canvas.setSelected(x,y);
         } else {
 //            setSelected(-1000,-1000);
         }
@@ -310,356 +179,29 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         mousex = evt.getX();
         mousey = evt.getY();
 
-        updateTransform();
-        transform.translate(dx/transform.getScaleX(), dy/transform.getScaleY());
-        
-        repaint();
-    }
-
+        canvas.updateTransform();
+        canvas.translateCanvas(dx, -dy);
+        this.canvas.repaint();
+    }    
+    
     @Override public void mouseWheelMoved(MouseWheelEvent evt){
         double dZ = evt.getWheelRotation();
-        double scale_factor = Math.pow(ZOOM_BASE,-dZ);
-        transform.translate((1-scale_factor) * getChartX(mousex), (1-scale_factor) * getChartY(mousey));        
-        transform.scale(scale_factor,scale_factor);
-        zoom -= dZ;
-        updateTransform();
-        repaint();
+        canvas.zoomCanvasAround(dZ,canvas.getChartX(mousex), canvas.getChartY(mousey));       
+        this.canvas.repaint();
     }
     
-    
-    boolean isVisible(SseqClass d){
-        int[] deg = d.getDegree();
-        for(int i = 2; i < minfilt.length; i++)
-            if(deg[i] < minfilt[i] || deg[i] > maxfilt[i])
-                return false;
-        return true; //dec.isVisible(d);
-    }
-
-    int[] algToTopGrading(int x, int y){
-        return new int[] {y,x+y};
-    }
-    
-    int[] topToAlgGrading(int x, int y){
-        return new int[] {y - x,x};
-    }    
-    
-    
-    private Map<SseqClass,Point2D> pos;
-    
-
-    
-    /**
-     * The key callback to paint the JFrame.
-     * @param graphics A canvas provided by JFrame.
-     */
-    @Override public void paintComponent(Graphics graphics)
-    {
-        super.paintComponent(graphics);
-        paintComponentHelper(graphics,transform);
-        Graphics2D g = (Graphics2D) graphics;
-        
-        g.setRenderingHint(
-            RenderingHints.KEY_ANTIALIASING,
-            RenderingHints.VALUE_ANTIALIAS_ON);
-
-        g.setRenderingHint( RenderingHints.KEY_STROKE_CONTROL,
-                            RenderingHints.VALUE_STROKE_PURE);
-        
-        /* draw side fill and axes */
-        int bmy = getHeight() - MARGIN_WIDTH;
-        g.setColor(getBackground());
-        g.fillRect(0, 0, MARGIN_WIDTH, getHeight());
-        g.fillRect(0, bmy, getWidth(), MARGIN_WIDTH);
-        g.setColor(Color.gray);
-        g.drawLine(MARGIN_WIDTH, 0, MARGIN_WIDTH, bmy);
-        g.drawLine(MARGIN_WIDTH, bmy, getWidth(), bmy);
-        
-        g.setColor(Color.black);
-        FontMetrics metrics = g.getFontMetrics(g.getFont());  
-        for(int x = (getMinX()/xtickstep)*xtickstep; x <= getMaxX(); x += xtickstep) {
-            Rectangle2D r = metrics.getStringBounds(String.valueOf(x), g);  
-            g.drawString(String.valueOf(x),(float) (getScreenX(x+ 0.5)-r.getWidth()/2), (float) (getHeight() - MARGIN_WIDTH/2  + r.getHeight()/2));
-        }
-        for(int y = (getMinY()/ytickstep)*ytickstep; y <= getMaxY(); y += ytickstep) {
-            Rectangle2D r = metrics.getStringBounds(String.valueOf(y), g);  
-            g.drawString(String.valueOf(y), (float) (MARGIN_WIDTH/2-r.getWidth()/2), (float)(getScreenY(y + 0.5) + r.getHeight()/2));
-        }        
-    }
-    
-    /**
-     * We want to also produce pdf output. There are two issues with just using the paintComponent() method
-     * @param graphics 
-     */
-    public void paintPDF(Graphics graphics){
-            paintComponentHelper(graphics,transform);
-    }    
-
-    private void drawGrid(Graphics2D g){
-        int min_x_visible = getMinX();
-        int min_y_visible = getMinY();
-        int max_x_visible = getMaxX();
-        int max_y_visible = getMaxY();        
-        g.setStroke(gridStroke);
-        FontMetrics metrics = g.getFontMetrics(g.getFont());  
-        AffineTransform tempTransform = new AffineTransform();
-        Point2D tempPoint = new Point2D.Double();
-        for(int x = min_x_visible; x <= max_x_visible; x += xgridstep) {
-            g.setColor(Color.lightGray);
-            /* Offset x component by xgridstep/2 in order to keep dots centered in grid. */
-            g.draw(transform.createTransformedShape(new Line2D.Double(x - xgridstep/2, min_y_visible , x - xgridstep/2,max_y_visible)));
-            g.setColor(Color.black);
-            if(x % xtickstep == 0) {
-                Rectangle2D r = metrics.getStringBounds(String.valueOf(x), g);                                      
-                tempTransform.setToTranslation(-r.getWidth()/2,TICK_GAP);
-                tempTransform.concatenate(transform);
-                tempPoint.setLocation(x+0.5, 0);
-                tempTransform.transform(tempPoint, tempPoint);
-//                g.drawString(String.valueOf(x), (float) tempPoint.getX(), (float) tempPoint.getY());           
-            }
-        }
-        for(int y = min_y_visible; y <= max_y_visible; y += ygridstep) {        
-            g.setColor(Color.lightGray);
-            /* Offset x start point by xgridstep/2 in order to match up with vertical grid lines. */
-            g.draw(transform.createTransformedShape(new Line2D.Double(min_x_visible - xgridstep/2, y  , max_x_visible, y)));
-            g.setColor(Color.black);  
-            if(y % ytickstep == 0){
-                Rectangle2D r = metrics.getStringBounds(String.valueOf(y), g);                  
-                tempTransform.setToTranslation(-TICK_GAP,r.getHeight()/2);
-                tempTransform.concatenate(transform);
-                tempPoint.setLocation(0, y+0.5);
-                tempTransform.transform(tempPoint, tempPoint);
-//                g.drawString(String.valueOf(y), (float) tempPoint.getX(), (float) tempPoint.getY());                 
-            }
-        }
-    }
-    
-    public void paintComponentHelper(Graphics graphics, AffineTransform transform){
-        Graphics2D g2d = (Graphics2D) graphics;
-        Graphics2DWithArrow g = new Graphics2DWithArrow(g2d);
-        class DrawingCommands {            
-            private void drawLine(double x1,double y1,double x2,double y2){
-                g.draw(new Line2D.Double(x1, y1, x2, y2));
-            }
-
-            private void drawEdge(SseqEdge edge){
-                if(!edge.drawOnPageQ(page)){
-                    return;
-                }
-                    
-                g.setColor(edge.getColor(page));
-                SseqClass source = edge.getSource();
-                SseqClass target = edge.getTarget();
-                if(pos.get(source)!=null && pos.get(target)!=null){//if(isVisible(u) && isVisible(d.dest)){
-                    drawStructlineHelper(pos.get(source),pos.get(target));
-                }
-        //          g.setColor(sl.getColor());
-        //        AffineTransform saveTransform = g.getTransform();        
-        //        double[] source = pos.get(sl.getSource());
-        //        double[] target = pos.get(sl.getTarget());
-        //        double x0 = target[0];
-        //        double y0 = target[1];
-        //        double dx = target[0]-source[0];
-        //        double dy = target[1]-source[1];
-        //        double veclen = Math.sqrt(Math.pow(dx,2)+Math.pow(dy,2));
-        //        
-        //        AffineTransform affineTransform = new AffineTransform();
-        //        affineTransform.scale(veclen,veclen);
-        //        affineTransform.rotate(Math.atan2(dy, dx));
-        //        affineTransform.translate(x0, y0);
-        //        
-        //        g.draw(sl.getShape());
-            }
-
-            private void drawUnbasedStructline(U u,UnbasedLineDecoration<U> d){
-                g.setColor(d.color);
-        //        drawStructlineHelper(g,pos.get(u),getScreenP(d.dest));
-            }    
-
-            private void drawStructlineHelper(Point2D p1, Point2D p2){
-                g.draw(AffineTransform.getTranslateInstance(transform.getScaleX()/2,  transform.getScaleY()/2).createTransformedShape(new Line2D.Double(p1,p2)));
-            }
-
-            private void shadeChartCell(Color color,double x,double y){
-                g.setColor(color);
-                g.fill(transform.createTransformedShape(new Rectangle2D.Double(x, y, 1, 1)));
-            }            
-            
-            final Color[] colors = new Color[] {Color.BLACK, Color.BLUE,Color.GREEN,Color.ORANGE};
-            
-            private void drawClass(SseqClass c){
-                Style s = c.getStyle(page);
-                
-                g.setColor(s.getColor());
-                AffineTransform saveTransform = g.getTransform();
-                Point2D p = pos.get(c);
-                if(p==null){
-                    return;
-                }
-                
-//              TODO: Figure out how to scale these dots so that they get bigger as we zoom in
-//              raising the scale factor to a power of 1.5
-                g.translate(p.getX() - 3 + transform.getScaleX()/2,p.getY() - 3 + transform.getScaleY()/2);
-                
-                Shape transformedShape = AffineTransform.getScaleInstance(1, 1).createTransformedShape(s.getShape());
-                if(s.fillQ()){
-                    g.fill(transformedShape);
-                } else {
-                    g.draw(transformedShape);
-                }
-                g.setTransform(saveTransform);
-            }                
-        }
-        
-        DrawingCommands drawHelpers = new DrawingCommands();
-
-        /* calculate visible region */
-        int min_x_visible = getMinX();
-        int min_y_visible = getMinY();
-        int max_x_visible = getMaxX();
-        int max_y_visible = getMaxY();
-        
-       
-        
-        /* draw grid  -- this needs to go first so that the uncomputed region is correctly blacked out 
-         * (it looks ugly to have a light gray grid on a black background).
-         */
-        drawGrid(g);
-        
-        g.setStroke(lineStroke);
-        g.setColor(Color.black);
-
-        /* draw axes */
-        g.draw(transform.createTransformedShape(new Line2D.Double( min_x_visible , 0,max_x_visible,0)));
-        g.draw(transform.createTransformedShape(new Line2D.Double(0, min_y_visible , 0,max_y_visible)));        
-
-
-        /* assign classes a location; at this point we definitively decide what's visible */
-        Set<SseqClass> frameVisibles = new HashSet<>();
-        pos = new HashMap<>();
-        for(int x = min_x_visible; x <= max_x_visible && x <= T_max + 3; x++) {
-            for(int y = min_y_visible; y <= max_y_visible; y++) {
-                int cellState = sseq.getState(algToTopGrading(x,y));
-                Color cellColor;
-                cellColor = STATE_COLORS.get(cellState);
-                
-                if(cellColor!=transparent){
-                    drawHelpers.shadeChartCell(cellColor,x,y);                
-                }
-
-                if(!(cellState == MultigradedVectorSpace.STATE_PARTIAL || cellState == MultigradedVectorSpace.STATE_DONE)){
-                    continue;
-                }
-                
-                Collection<SseqClass> classes = sseq.getClasses(algToTopGrading(x,y),page);
-//                System.out.println("classes: " + sseq.getClasses(multideg(15,1)).size());
-                int visible;
-                synchronized(classes) {
-                    visible = (int) classes.stream().filter((d) -> (isVisible(d))).map((d) -> {
-                        frameVisibles.add(d);
-                        return d;
-                    }).count();
-                    double offset = -10 * (visible-1) / 2 * scale;
-                    for(SseqClass d : classes) { 
-                        if(frameVisibles.contains(d) && d.drawOnPageQ(page)) {
-                            Point2D newpos = new Point2D.Double( getScreenX(x) + offset, getScreenY(y) - offset/2 );
-                            pos.put(d, newpos);
-                            offset += 10 * scale;
-                        }
-                    }
-                }
-            }
-        }
-        g.fill(transform.createTransformedShape(new Rectangle.Double(T_max + 1,min_y_visible,max_x_visible,max_y_visible)));
-        drawHelpers.shadeChartCell(Color.orange,selx,sely);
-
-        /* draw decorations */
-        for(SseqClass u : frameVisibles) {
-            /* based */
-            
-            g.setNoArrow();
-            for(Structline s : u.getStructlines()){
-                drawHelpers.drawEdge(s);
-            }
-            
-            g.setArrow(curvedArrow);
-            for(Differential s : u.getOutgoingDifferentials()){
-                drawHelpers.drawEdge(s);
-            }
-//            /* unbased */
-//            dec.getUnbasedStructlineDecorations(u).forEach((d) -> 
-//                drawUnbasedStructline(g,u,d)
-//            );
-        }
-
-        /* draw dots */
-        g.setColor(Color.black);
-        frameVisibles.forEach((c) -> 
-            drawHelpers.drawClass(c)
-        );
-
-    }
-
-    @SuppressWarnings("fallthrough")
-    void setSelected(int x, int y)
-    {
-        selx = x;
-        sely = y;
-        repaint();
-
-        if(textarea == null) return;
-
-        String ret = "";
-        switch(sseq.getState(algToTopGrading(x,y))) {
-            case MultigradedVectorSpace.STATE_VANISHES:
-                ret = "This degree vanishes formally.";
-                break;
-            case MultigradedVectorSpace.STATE_NOT_COMPUTED:
-                ret = "This degree has not yet been computed.";
-                break;
-            case MultigradedVectorSpace.STATE_STARTED:
-                ret = "This degree is still being computed.";
-                break;
-            case MultigradedVectorSpace.STATE_PARTIAL:
-                ret = "This degree might not yet be complete.\n";
-                // case falls through
-            case MultigradedVectorSpace.STATE_DONE:
-            default:
-                ret += "Bidegree ("+x+","+y+")\n";
-                Collection<SseqClass> classes = sseq.getClasses(algToTopGrading(x,y),page);
-                for(SseqClass c : classes) if(isVisible(c) && c.getPage() >= page ) {
-                    ret += "\n" + c.toString();
-                    ret += "\n" + c.extraInfo();
-                    ret += "\n";
-                }
-        }
-
-        textarea.setText(ret);
-    }
-   
-    public void incrementPage(){
-        if(page_index > 0){
-            page_index --;
-        }
-        page = page_list.get(page_index);
-        repaint();
-    }
-    
-    public void decrementPage(){
-        if(page_index < page_list.size() - 1){
-            page_index ++;
-        }
-        page = page_list.get(page_index);
-        repaint();
-    }
-
     @Override
     public void windowOpened(WindowEvent e) {
-        updateTransform();
-        transform.translate(0, getHeight());        
-        transform.scale(xscale * BLOCK_FACTOR, - yscale * BLOCK_FACTOR); 
-        transform.translate(1, 1/scale_aspect_ratio);          
-        updateTransform();
-        repaint();
+        canvas.updateTransform();
+//        System.out.println("HI!");
+//        System.out.println(canvas.transform.toString());
+        canvas.transform.translate(0, canvas.getHeight());        
+        canvas.transform.scale(canvas.xscale * canvas.BLOCK_FACTOR, - canvas.yscale * canvas.BLOCK_FACTOR); 
+        canvas.transform.translate(1, 1/canvas.scale_aspect_ratio);
+//        System.out.println(canvas.transform.toString());
+        canvas.updateTransform();
+//        System.out.println(canvas.transform.toString());
+        canvas.repaint();
     }
 
     @Override
@@ -673,18 +215,38 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     
     @Override
     public void windowDeiconified(WindowEvent e) {
-        updateTransform();
-        repaint();
+        canvas.updateTransform();
+        this.canvas.repaint();
     }
 
     @Override
     public void windowActivated(WindowEvent e) {
-        updateTransform();
-        repaint();
+        canvas.updateTransform();
+        this.canvas.repaint();
     }
 
     @Override
     public void windowDeactivated(WindowEvent e) {}
+    
+    public void toggleConsole(){
+        this.consoleOpen = ! this.consoleOpen;
+        consoleOutputPane.setVisible(this.consoleOpen);        
+        canvas.translateCanvas(0, ((this.consoleOpen) ? 1 : -1) * (openConsoleDimension.height - closedConsoleDimension.height)); 
+//        consolePanel.setPreferredSize(openConsoleDimension);
+        if(this.consoleOpen){
+            consolePanel.setPreferredSize(this.openConsoleDimension);
+        } else {
+            consolePanel.setPreferredSize(this.closedConsoleDimension);
+        }
+        frame.revalidate();     
+        this.consolePanel.revalidate();
+        repaint();
+    }    
+    
+    
+    
+    
+    
 
 }
 
@@ -701,14 +263,26 @@ class ControlPanel2D extends Box {
                     return false;
                 switch(e.getKeyCode()) {
                     case KeyEvent.VK_LEFT:
-                        parent.incrementPage();
+                        if(parent.consoleInput.isFocusOwner()){
+                            return false;
+                        }
+                        parent.canvas.incrementPage();
                         return true;
                     case KeyEvent.VK_RIGHT:
-                        parent.decrementPage();
+                        if(parent.consoleInput.isFocusOwner()){
+                            return false;
+                        }                        
+                        parent.canvas.decrementPage();
                         return true;
                     case KeyEvent.VK_G:  
                         handleGo();
-                        return true;                        
+                        return true;  
+                    case KeyEvent.VK_C:
+                         if (e.isControlDown()){
+                            parent.toggleConsole();
+                            return true;
+                         }
+                         return false;
                     default:
                         return false;
                 }
@@ -807,130 +381,21 @@ class ControlPanel2D extends Box {
     }
     
     
-    private void setup_gui(final SpectralSequenceDisplay<?> parent){
+    private ControlPanel2D setup_gui(final SpectralSequenceDisplay<?> parent){
 
-        /* filtration sliders */
-        for(int i = 2; i < parent.minfilt.length; i++) {
-            final int icopy = i;
-
-            final JSpinner s1 = new JSpinner(new SpinnerNumberModel(parent.minfilt[i],0,1000,1));
-            final JSpinner s2 = new JSpinner(new SpinnerNumberModel(parent.maxfilt[i],0,1000,1));
-
-            s1.addChangeListener((ChangeEvent e) -> {
-                parent.minfilt[icopy] = (Integer) s1.getValue();
-                parent.setSelected(parent.selx, parent.sely);
-                parent.repaint();
-            });
-            
-            s2.addChangeListener((ChangeEvent e) -> {
-                parent.maxfilt[icopy] = (Integer) s2.getValue();
-                parent.setSelected(parent.selx, parent.sely);
-                parent.repaint();
-            });
-
-            if(i == 2) {
-                KeyboardFocusManager.getCurrentKeyboardFocusManager()
-                    .addKeyEventDispatcher((KeyEvent e) -> {
-                        if(e.getID() != KeyEvent.KEY_PRESSED)
-                            return false;
-                        switch(e.getKeyCode()) {
-                            case KeyEvent.VK_PAGE_UP:
-                                s1.setValue( ((Integer) s1.getValue()) + 1);
-                                s2.setValue( ((Integer) s2.getValue()) + 1);
-                                return true;
-                            case KeyEvent.VK_PAGE_DOWN:
-                                s1.setValue( ((Integer) s1.getValue()) - 1);
-                                s2.setValue( ((Integer) s2.getValue()) - 1);
-                                return true;
-                            default:
-                                return false;
-                        }
-                });
-            }
-
-            Dimension smin = new Dimension(0,30);
-            s1.setMinimumSize(smin);
-            s2.setMinimumSize(smin);
-            s1.setPreferredSize(smin);
-            s2.setPreferredSize(smin);
-
-            add(new JLabel("Filtration "+(i-1)+":"));
-            add(new JLabel("min:"));
-            add(s1);
-            add(new JLabel("max:"));
-            add(s2);
-            add(Box.createVerticalStrut(20));
-        }
-
-        /*
-        final JCheckBox diff = new JCheckBox("Alg Novikov differentials");
-        diff.setSelected(false);
-        diff.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                parent.diff = diff.isSelected();
-                parent.repaint();
-            }
-        });
-        add(diff);
-        
-        final JCheckBox cartdiff = new JCheckBox("Cartan differentials");
-        cartdiff.setSelected(true);
-        cartdiff.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                parent.cartdiff = cartdiff.isSelected();
-                parent.repaint();
-            }
-        });
-        add(cartdiff);
-        add(Box.createVerticalStrut(20));
-
-        for(int i = 0; i <= 2; i++) {
-            final int j = i;
-
-            Box h = Box.createHorizontalBox();
-            h.add(new JLabel("h"+i+":"));
-            final JCheckBox hlines = new JCheckBox("lines", parent.hlines[i]);
-            hlines.addActionListener(new ActionListener() {
-                @Override public void actionPerformed(ActionEvent evt) {
-                    parent.hlines[j] = hlines.isSelected();
-                    parent.repaint();
-                }
-            });
-            final JCheckBox hhide = new JCheckBox("hide", parent.hhide[i]);
-            hhide.addActionListener(new ActionListener() {
-                @Override public void actionPerformed(ActionEvent evt) {
-                    parent.hhide[j] = hhide.isSelected();
-                    parent.repaint();
-                }
-            });
-            final JCheckBox htowers = new JCheckBox("towers", parent.htowers[i]);
-            htowers.addActionListener(new ActionListener() {
-                @Override public void actionPerformed(ActionEvent evt) {
-                    parent.htowers[j] = htowers.isSelected();
-                    parent.repaint();
-                }
-            });
-            h.add(hlines);
-            h.add(hhide);
-            h.add(htowers);
-            
-            h.setAlignmentX(-1.0f);
-            add(h);
-        }
-        add(Box.createVerticalStrut(20));
-        */
 //        parent.frame.setJMenuBar(createMenuBar());
         parent.textarea = new JTextArea();
-        parent.textarea.setMaximumSize(new Dimension(250,3000));
-        parent.textarea.setPreferredSize(new Dimension(250,3000));
+        parent.textarea.setMaximumSize(new Dimension(250,500));
+        parent.textarea.setPreferredSize(new Dimension(250,500));
         parent.textarea.setEditable(false);
         parent.textarea.setLineWrap(true);
         parent.textarea.setMargin( new Insets(10,10,10,10) );
-        JScrollPane textsp = new JScrollPane(parent.textarea, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        textsp.setMaximumSize(new Dimension(250,3000));
-        textsp.setPreferredSize(new Dimension(250,3000));
+        JScrollPane textsp = new JScrollPane(parent.textarea, ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        textsp.setMaximumSize(new Dimension(250,500));
+        textsp.setPreferredSize(new Dimension(250,500));
         textsp.setAlignmentX(-1.0f);
         add(textsp);
+        return this;
     }
 
 }

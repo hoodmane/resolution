@@ -126,6 +126,16 @@ public class BackendWrapperSseq implements SpectralSequence {
         return page_list;
     }
 
+    @Override
+    public void executeJython(String acommand, ConsoleOutputCallback callback) {
+        return;
+    }
+
+    @Override
+    public String getQuery() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
     
     
 }
