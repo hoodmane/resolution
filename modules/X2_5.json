@@ -1,0 +1,6 @@
+{"prime" : 5, "generators" : {"x0" : 0, "x1" : 8}, 
+
+"relations" : [
+    "table(table(Pi(x_j) = binom(i+j,j) x_{i+j}, {i,1,1-j}),{j,0,1})"
+], "T_max" : 600, "tex_output" : "X5_600.tex"}
+

@@ -7,6 +7,7 @@ package res.spectralsequencediagram;
 import java.awt.Color;
 import java.awt.Shape;
 import java.util.Collection;
+import res.spectralsequencediagram.nodes.Node;
 
 /**
  *
@@ -20,12 +21,11 @@ public interface SseqClass {
     int getPage();
     boolean drawOnPageQ(int page);
     
-    Shape getShape(int page);
     Color getColor(int page);
     void setColor(int page,Color color);
     
-    Style getStyle(int page);
-    SseqClass setStyle(Style s);
+    Node getNode(int page);
+    SseqClass setNode(Node s);
     
     String extraInfo();
     String getName();

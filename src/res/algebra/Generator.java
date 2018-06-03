@@ -1,11 +1,8 @@
 package res.algebra;
 import java.awt.Color;
-import java.awt.Shape;
-import java.awt.geom.Ellipse2D;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
-import res.spectralsequencediagram.Style;
+import res.spectralsequencediagram.nodes.*;
 import res.spectralsequencediagram.*;
 
 
@@ -18,18 +15,18 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
     public String extraInfo = "";
     private Collection<Structline> structlines;
     private StructlineProducer structlineGetter;
-    private Style style = new StandardStyle();
+    private Node node = new CircleNode();
 
     @Override
     public Color getColor(int page) {
 //        System.out.println("getting color");
-        return style.getColor();
+        return node.getColor();
     }
     
     @Override
     public void setColor(int page,Color color) {
 //        System.out.println("setting color");
-        style.setColor(color);
+        node.setColor(color);
     }    
 
     @Override
@@ -43,15 +40,11 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
     }
 
     @Override
-    public Style getStyle(int page) {
-        return style;
-    }
-
-    @Override
-    public SseqClass setStyle(Style s) {
-        style = s;
+    public SseqClass setNode(Node s) {
+        this.node = s;
         return this;
     }
+
     
     public static interface StructlineProducer {
         Collection<Structline> get();
@@ -117,8 +110,8 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
 
 
     @Override
-    public Shape getShape(int page) {
-        return new Ellipse2D.Double( 0, 0, 6, 6);
+    public Node getNode(int page) {
+        return node;
     }
 
     @Override

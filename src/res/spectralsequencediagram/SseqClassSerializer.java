@@ -13,6 +13,8 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import res.spectralsequencediagram.nodes.CircleNode;
+import res.spectralsequencediagram.nodes.Node;
 
 /**
  *
@@ -41,6 +43,7 @@ public class SseqClassSerializer implements JsonSerializer<SseqClass>{
         int[] degree;
         String name;
         String extraInfo;
+        Node node = new CircleNode();
         
         // internal fields
         Collection<Structline> structlines = new ArrayList<>();
@@ -67,8 +70,8 @@ public class SseqClassSerializer implements JsonSerializer<SseqClass>{
         }
 
         @Override
-        public Shape getShape(int page) {
-            return new Ellipse2D.Double( 0, 0, 6, 6);
+        public Node getNode(int page) {
+            return node;
         }
 
         @Override
@@ -83,12 +86,12 @@ public class SseqClassSerializer implements JsonSerializer<SseqClass>{
 
         @Override
         public Color getColor(int page) {
-            return Color.BLACK;
+            return node.getColor();
         }
 
         @Override
         public void setColor(int page, Color color) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            node.setColor(color);
         }
 
         @Override
@@ -96,16 +99,14 @@ public class SseqClassSerializer implements JsonSerializer<SseqClass>{
             return true;
         }
 
-
         @Override
-        public SseqClass setStyle(Style s) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        public SseqClass setNode(Node s) {
+            node = s;
+            return this;
         }
 
-        @Override
-        public Style getStyle(int page) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
+
+
         
     }
 }

@@ -43,7 +43,7 @@ public class BevelArrows
         void draw ( Graphics2D g, double x1, double y1, double x2, double y2 );
     }
 
-    Arrow[] arrows = { new NoArrow(), new LineArrow(), new CurvedArrow() };
+    public Arrow[] arrows = { new NoArrow(), new LineArrow(), new CurvedArrow() };
 
 //    void draw ( Graphics2D g, int width, int height )
 //    {

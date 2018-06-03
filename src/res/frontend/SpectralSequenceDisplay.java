@@ -1,29 +1,15 @@
 package res.frontend;
 
-import res.spectralsequencediagram.Style;
-import res.spectralsequencediagram.SseqEdge;
 import res.algebra.*;
-import res.transform.*;
-
-import java.util.List;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.*;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 import javax.swing.*;
-import javax.swing.event.*;
 import javax.swing.UIManager;
 import res.spectralsequencediagram.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.text.DefaultCaret;
-import res.frontend.BevelArrows.CurvedArrow;
 
 public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JPanel 
         implements MouseMotionListener, MouseListener, MouseWheelListener, WindowListener, ActionListener
@@ -180,13 +166,14 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         mousey = evt.getY();
 
         canvas.updateTransform();
-        canvas.translateCanvas(dx, -dy);
-        this.canvas.repaint();
+        canvas.translateCanvas(dx, -dy);      
+        canvas.repaint();
     }    
     
     @Override public void mouseWheelMoved(MouseWheelEvent evt){
         double dZ = evt.getWheelRotation();
         canvas.zoomCanvasAround(dZ,canvas.getChartX(mousex), canvas.getChartY(mousey));       
+        canvas.updateTransform();
         this.canvas.repaint();
     }
     
@@ -202,6 +189,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         canvas.updateTransform();
 //        System.out.println(canvas.transform.toString());
         canvas.repaint();
+        repaint();
     }
 
     @Override
@@ -217,12 +205,14 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     public void windowDeiconified(WindowEvent e) {
         canvas.updateTransform();
         this.canvas.repaint();
+        repaint();
     }
 
     @Override
     public void windowActivated(WindowEvent e) {
         canvas.updateTransform();
         this.canvas.repaint();
+        repaint();
     }
 
     @Override
