@@ -23,6 +23,10 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     int sely = selx;
     int mousex = -1000;
     int mousey = -1000;
+//  These record the mouse position when the user clicked so that if they only 
+//  "drag" the mouse a tiny distance, we can handle it as if they clicked.
+    int mouseDownX;
+    int mouseDownY;
     boolean mouseDown;
    
     
@@ -143,16 +147,28 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     @Override public void mouseClicked(MouseEvent evt) {
         this.canvas.repaint();
         this.canvas.requestFocusInWindow();
-        int x = (int) canvas.getChartX(evt.getX());
-        int y = (int) canvas.getChartY(evt.getY());
+        int x = (int) Math.floor(canvas.getChartX(evt.getX()));
+        int y = (int) Math.floor(canvas.getChartY(evt.getY()));
         if((x >= 0 || canvas.x_full_range) && ( y >= 0 || canvas.y_full_range ) ) {
             canvas.setSelected(x,y);
         } else {
 //            setSelected(-1000,-1000);
         }
     }
-    @Override public void mousePressed(MouseEvent evt) { mouseDown = true; }
-    @Override public void mouseReleased(MouseEvent evt) { mouseDown = false; }
+    @Override public void mousePressed(MouseEvent evt) { 
+        mouseDown = true; 
+        mouseDownX = evt.getX();
+        mouseDownY = evt.getY();
+    }
+    @Override public void mouseReleased(MouseEvent evt) { 
+        mouseDown = false; 
+//      If the user dragged a tiny amount, treat as a click.
+        double dx = evt.getX() - mouseDownX;
+        double dy = evt.getY() - mouseDownY;
+        if(dx*dx + dy*dy < 10){
+            mouseClicked(evt);
+        }
+    }
     @Override public void mouseEntered(MouseEvent evt) { }
     @Override public void mouseExited(MouseEvent evt) { }
 
@@ -226,14 +242,11 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         frame.revalidate();     
         this.consolePanel.revalidate();
         repaint();
-    }    
-    
-    
-    
-    
-    
+    }        
 
 }
+
+
 
 class ControlPanel2D extends Box {
 

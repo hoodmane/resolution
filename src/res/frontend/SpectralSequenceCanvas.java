@@ -303,15 +303,15 @@ public class SpectralSequenceCanvas<U extends MultigradedElement<U>>
         super.paintComponent(graphics);
         Graphics2D g = (Graphics2D) graphics;
         
-        drawGrid(g);        
-        paintComponentHelper(g);
-        
         g.setRenderingHint(
             RenderingHints.KEY_ANTIALIASING,
             RenderingHints.VALUE_ANTIALIAS_ON);
 
         g.setRenderingHint( RenderingHints.KEY_STROKE_CONTROL,
-                            RenderingHints.VALUE_STROKE_PURE);
+                            RenderingHints.VALUE_STROKE_PURE);        
+        
+        drawGrid(g);        
+        paintComponentHelper(g);
         
         /* draw side fill and axes */
         int bmy = getHeight() - MARGIN_WIDTH;
