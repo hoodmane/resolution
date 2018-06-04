@@ -200,7 +200,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     @Override
     public void windowOpened(WindowEvent e) {
         canvas.initializeTransform();
-        repaint();  
+        this.canvas.repaint();  
     }
 
     @Override
