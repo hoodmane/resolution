@@ -15,8 +15,16 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
     public String extraInfo = "";
     private Collection<Structline> structlines;
     private StructlineProducer structlineGetter;
-    private Node node = new CircleNode();
+    private Node node = new RectangleNode(8,8,RectangleNode.NO_FILL);
 
+    int[] algToTopGrading(int x, int y){
+        return new int[] {y, x + y};
+    }
+    
+    int[] topToAlgGrading(int x, int y){
+        return new int[] {y - x, x};
+    }    
+    
     @Override
     public Color getColor(int page) {
 //        System.out.println("getting color");
@@ -80,7 +88,7 @@ public class Generator<T extends GradedElement<T>> implements MultigradedElement
 
     @Override public int[] getDegree()
     {
-        return deg;
+        return topToAlgGrading(deg[0],deg[1]);
     }
 
     @Override public boolean equals(Object o)

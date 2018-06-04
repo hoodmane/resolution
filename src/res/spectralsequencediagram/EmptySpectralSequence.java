@@ -29,12 +29,12 @@ public class EmptySpectralSequence implements SpectralSequence{
     }
 
     @Override
-    public Collection<SseqClass> getClasses() {
+    public Collection<SseqClass> getClasses(int page) {
         return Collections.EMPTY_LIST;
     }
 
     @Override
-    public Collection<SseqClass> getClasses(int x, int y) {
+    public Collection<SseqClass> getClasses(int x, int y, int page) {
         return Collections.EMPTY_LIST;
     }
 

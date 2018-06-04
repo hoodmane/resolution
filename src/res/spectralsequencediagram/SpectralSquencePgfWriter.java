@@ -51,7 +51,7 @@ public class SpectralSquencePgfWriter {
         out.append("\\input{macrodefs}");
         out.append("\\begin{document}");        
         out.append("\\begin{pgfpicture}");
-        out.append(sseq.getClasses().stream().map(c -> {
+        out.append(sseq.getClasses(0).stream().map(c -> {
             StringBuffer s = new StringBuffer();
             double[] position = pos.get(c);
             if(position == null){

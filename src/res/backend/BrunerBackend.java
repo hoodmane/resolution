@@ -111,7 +111,7 @@ public class BrunerBackend<T extends GradedElement<T>>
             BrunerCellData<T> dat = dat(i[0],i[1]);
             if(dat != null && dat.gens != null)
                 return dat.gens;
-            return null;
+            return Collections.EMPTY_LIST;
         } else if(i.length == num_gradings()) {
             Collection<Generator<T>> gens = gensByMultidegree.get(i);
             if(gens == null) return Collections.emptyList();
@@ -401,7 +401,7 @@ public class BrunerBackend<T extends GradedElement<T>>
 
         /* save the result -- at this point the computation is considered finished */
         dat.gens = gens;
-        ping(new int[] {s,t,-1});
+        ping(algToTopGrading(s,t));
 
         if(Config.STDOUT) System.out.printf("(%2d,%2d): %2d gen, %2d ker\n\n", s, t, dat.gens.size(), dat.kbasis.size());
         
@@ -426,6 +426,14 @@ public class BrunerBackend<T extends GradedElement<T>>
             if(atomic_claim_grid(s,t+1))
                 putTask(new BrunerResTask(BrunerResTask.COMPUTE, s, t+1)); /* move right */
     }
+    
+    int[] algToTopGrading(int x, int y){
+        return new int[] {y, x + y};
+    }
+    
+    int[] topToAlgGrading(int x, int y){
+        return new int[] {y - x, x};
+    }    
     
     /**
      * Java needs some coercion to downcast Collection<T> to Collection<S> where S is a superclass of T. This is because

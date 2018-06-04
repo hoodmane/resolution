@@ -29,7 +29,7 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
     public JsonElement serialize(SpectralSequence t, Type type, JsonSerializationContext jsc) {
         SseqToSerialize ts = new SseqToSerialize();
         ts.num_gradings = t.num_gradings();
-        ts.classes = t.getClasses();
+        ts.classes = t.getClasses(0);
         ts.structlines = t.getStructlines(0);
         ts.T_max = t.getTMax();
         return jsc.serialize(ts,SseqToSerialize.class);
@@ -91,12 +91,12 @@ public class SpectralSequenceSerializer implements JsonSerializer<SpectralSequen
         }
 
         @Override
-        public Collection<SseqClass> getClasses() {
+        public Collection<SseqClass> getClasses(int page) {
             return Collections.unmodifiableCollection(classes);
         }
 
         @Override
-        public Collection<SseqClass> getClasses(int x, int y) {
+        public Collection<SseqClass> getClasses(int x, int y, int page) {
             return getClasses(new int[] {x,y},0);
         }
 

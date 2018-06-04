@@ -105,9 +105,6 @@ public class SseqClassSerializer implements JsonSerializer<SseqClass>{
             return this;
         }
 
-
-
-        
     }
 }
 

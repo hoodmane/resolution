@@ -18,8 +18,8 @@ public interface SpectralSequence {
     
     public int totalGens();
     
-    Collection<SseqClass> getClasses();
-    Collection<SseqClass> getClasses(int x, int y);
+    Collection<SseqClass> getClasses(int page);
+    Collection<SseqClass> getClasses(int x, int y,int page);
     Collection<SseqClass> getClasses(int[] p,int page);
     
     Collection<Structline> getStructlines(int page);

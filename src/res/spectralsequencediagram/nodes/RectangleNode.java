@@ -32,51 +32,56 @@ public class RectangleNode extends Node {
     public static final int UPPER_RIGHT_FILL = 5;
     
     public RectangleNode(){
-        this(10,10);
+        this(10, 10);
     }
 
     public RectangleNode(double size){
-        this(size,size);
+        this(size, size);
     }
     
     public RectangleNode(double width, double height ){
         this.width = width;
         this.height = height;
-        shape = new Rectangle2D.Double(0,0,width,height);
+        shape = new Rectangle2D.Double(0, 0, width, height);
         this.fill = FILL;
     }
     
     public RectangleNode(double width, double height, int fill ){
         this.width = width;
         this.height = height;
-        this.shape = new Rectangle2D.Double(0,0,width,height);
+        xoffset = width/2;
+        yoffset = height/2;
+        this.shape = new Rectangle2D.Double(0, 0, width, height);
         this.fill = fill;
-    }
-    
-    @Override
-    Shape getShape() {
-        return AffineTransform.getTranslateInstance(x- width/2, y- height/2).createTransformedShape(shape);
     }
 
     @Override
-    public Point2D getBoundaryPoint(double x1, double y1) {
+    Shape baseShape() {
+        return shape;
+    }
+        
+    
+    @Override
+    public Point2D getBoundaryPoint(AffineTransform t, double x1, double y1) {
         double dx = x1 - x;
         double dy = y1 - y;
+        double scaled_height = t.getScaleY() * height;
+        double scaled_width  = t.getScaleX() * width;
         double px, py;
         if(dy - dx <= 0){
             if(dy + dx <= 0){
-                py = -height/2;
+                py = -scaled_height/2;
                 px = dx/dy * py;
             } else {
-                px = width/2;
+                px = scaled_width/2;
                 py = dy/dx * px;
             }
         } else {
             if(dy + dx <= 0){
-                px = -width/2;
+                px = -scaled_width/2;
                 py = dy/dx * px;                
             } else {
-                py = height/2;
+                py = scaled_height/2;
                 px = dx/dy * py;
             }            
         }
@@ -84,13 +89,13 @@ public class RectangleNode extends Node {
     }
     
     @Override
-    public void draw(Graphics2D g){
+    public void draw(Graphics2D g, AffineTransform t){
         g.setColor(color);
-        Shape shape = this.getShape();
+        Shape transformedShape = this.getShape(t);
         if(fill == FILL){
-            g.fill(shape);
+            g.fill(transformedShape);
         } else {
-            g.draw(shape);
+            g.draw(transformedShape);
             if(fill != NO_FILL){
                 double xsgn, ysgn;
                 switch(fill){
@@ -119,7 +124,7 @@ public class RectangleNode extends Node {
                 path.lineTo(x + xsgn, y + ysgn);
                 path.lineTo(x - xsgn, y - ysgn);
                 path.closePath();
-                g.fill(path);            
+                g.fill(t.createTransformedShape(path));            
             }
         }
     }
@@ -127,17 +132,17 @@ public class RectangleNode extends Node {
 
     @Override
     public Node copy() {
-        return new RectangleNode(width,height,fill);
+        return new RectangleNode(width, height, fill);
     }
-    
+
     public static class Bar extends RectangleNode {
         @Override 
-        public void draw(Graphics2D g){
-            super.draw(g);
+        public void draw(Graphics2D g, AffineTransform t){
+            super.draw(g, t);
             GeneralPath path = new GeneralPath();
             path.moveTo(x - width/2 - 2, y - height/2 - 3);
             path.lineTo(x + width/2 + 2, y - height/2 - 3);
-            g.draw(path);            
+            g.draw(t.createTransformedShape(path));            
         }
         
         public Bar(){
@@ -153,29 +158,30 @@ public class RectangleNode extends Node {
         }
         
         @Override
-        public Point2D getBoundaryPoint(double x1, double y1) {
+        public Point2D getBoundaryPoint(AffineTransform t, double x1, double y1) {
+            double scaled_height = t.getScaleY() * height;
             double dx = x1 - x;
             double dy = y1 - y;
             if(dy + dx <= 0 && dy - dx <= 0 ){
-                double py = -height/2 - 3;
+                double py = -scaled_height/2 - 3;
                 double px = dx/dy * py;
                 return new Point2D.Double(px + x, py + y);
             } else {
-                return super.getBoundaryPoint(x1, y1);
+                return super.getBoundaryPoint(t, x1, y1);
             }
         }
         
         @Override
         public Node copy() {
-            return new Bar(width,height,fill);
+            return new Bar(width, height, fill);
         }        
     }
     
     public static class Dot extends RectangleNode {
         @Override 
-        public void draw(Graphics2D g){
-            super.draw(g);
-            g.fill(new Ellipse2D.Double(x -1.5,y - height/2 - 6, 4, 4));            
+        public void draw(Graphics2D g, AffineTransform t){
+            super.draw(g, t);
+            g.fill(t.createTransformedShape(new Ellipse2D.Double(x - 1.5, y - height/2 - 6, 4, 4)));            
         }
         
         public Dot(){
@@ -192,7 +198,7 @@ public class RectangleNode extends Node {
         
         @Override
         public Node copy() {
-            return new Dot(width,height,fill);
+            return new Dot(width, height, fill);
         }                
     }    
 }    

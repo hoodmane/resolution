@@ -25,6 +25,15 @@ public class BackendWrapperSseq implements SpectralSequence {
     private final int p;
     private List<Integer> page_list;
     
+    int[] algToTopGrading(int x, int y){
+        return new int[] {y, x + y};
+    }
+    
+    int[] topToAlgGrading(int x, int y){
+        return new int[] {y - x, x};
+    }    
+    
+    
     private static Color[] intervalColors(float angleFrom, float angleTo, int n) {
         float angleRange = angleTo - angleFrom;
         float stepAngle = angleRange / n;
@@ -48,24 +57,24 @@ public class BackendWrapperSseq implements SpectralSequence {
     
     private Collection<SseqClass>  setClassColors(Collection<SseqClass> classes){
         classes.forEach((c) -> {
-            c.setColor(0, colors[(c.getDegree()[1] - c.getDegree()[0])  % (2*p-2)]);
+            c.setColor(0, colors[(c.getDegree()[0])  % (2*p-2)]);
         });        
         return classes;
     }
     
     @Override
-    public Collection<SseqClass> getClasses() {
+    public Collection<SseqClass> getClasses(int page) {
         return setClassColors(back.getClasses());
     }
 
     @Override
-    public Collection<SseqClass> getClasses(int x, int y) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public Collection<SseqClass> getClasses(int x, int y, int page) {
+        return setClassColors(back.getClasses(algToTopGrading(x,y)));
     }
 
     @Override
     public Collection<SseqClass> getClasses(int[] degree,int page) {
-        return setClassColors(back.getClasses(degree));
+        return setClassColors(back.getClasses(algToTopGrading(degree[0],degree[1])));
     }
 
     /**
@@ -81,7 +90,7 @@ public class BackendWrapperSseq implements SpectralSequence {
 
     @Override
     public int getState(int x, int y) {
-        return back.getState(new int[] {x,y});
+        return back.getState(algToTopGrading(x,y));
     }
     
     double xscale,yscale;

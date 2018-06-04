@@ -3,6 +3,7 @@ package res.frontend;
 import res.algebra.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.Point2D;
 
 import javax.swing.*;
 import javax.swing.UIManager;
@@ -65,7 +66,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
        
         Font font = d.getFont().deriveFont((float)16);        
         d.consoleOutputText = new JTextArea(20,20);
-        d.consoleOutputText.setText("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+//        d.consoleOutputText.setText("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
         d.consoleOutputText.setMaximumSize(new Dimension(d.consoleHeight,d.consoleWidth));
         d.consoleOutputText.setPreferredSize(new Dimension(d.consoleHeight,d.consoleWidth));
 //        consoleTextArea.setEditable(false);
@@ -141,6 +142,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     
     @Override public void mouseClicked(MouseEvent evt) {
         this.canvas.repaint();
+        this.canvas.requestFocusInWindow();
         int x = (int) canvas.getChartX(evt.getX());
         int y = (int) canvas.getChartY(evt.getY());
         if((x >= 0 || canvas.x_full_range) && ( y >= 0 || canvas.y_full_range ) ) {
@@ -172,24 +174,17 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     
     @Override public void mouseWheelMoved(MouseWheelEvent evt){
         double dZ = evt.getWheelRotation();
-        canvas.zoomCanvasAround(dZ,canvas.getChartX(mousex), canvas.getChartY(mousey));       
+        Point2D pt = new Point2D.Double(mousex, mousey);
+        canvas.zoomCanvasAround(dZ, canvas.getChartX(mousex), canvas.getChartY(mousey));       
         canvas.updateTransform();
         this.canvas.repaint();
     }
     
+//  Initialize the scale here!
     @Override
     public void windowOpened(WindowEvent e) {
-        canvas.updateTransform();
-//        System.out.println("HI!");
-//        System.out.println(canvas.transform.toString());
-        canvas.transform.translate(0, canvas.getHeight());        
-        canvas.transform.scale(canvas.xscale * canvas.BLOCK_FACTOR, - canvas.yscale * canvas.BLOCK_FACTOR); 
-        canvas.transform.translate(1, 1/canvas.scale_aspect_ratio);
-//        System.out.println(canvas.transform.toString());
-        canvas.updateTransform();
-//        System.out.println(canvas.transform.toString());
-        canvas.repaint();
-        repaint();
+        canvas.initializeTransform();
+        repaint();  
     }
 
     @Override

@@ -32,22 +32,25 @@ public class CircleNode extends Node {
     
     public CircleNode(double radius, boolean fillQ){
         this.diameter = radius;
+        this.xoffset = radius/2;
+        this.yoffset = radius/2;
         this.fillQ = fillQ;
         this.shape = new Ellipse2D.Double(0,0,radius,radius);
     }
 
     @Override
-    Shape getShape() {
-        return AffineTransform.getTranslateInstance(x - diameter/2, y - diameter/2).createTransformedShape(shape);
+    Shape baseShape() {
+        return shape;
     }
    
 
     @Override
-    public Point2D getBoundaryPoint(double x1, double y1) {
+    public Point2D getBoundaryPoint(AffineTransform t, double x1, double y1) {
+        double scaled_diameter = t.getScaleY() * diameter;
         double dx = x1 - x;
         double dy = y1 - y;
         double magnitude = Math.sqrt(dx*dx + dy*dy);
-        return new Point2D.Double(diameter/2*dx/magnitude + x,diameter/2*dy/magnitude + y);
+        return new Point2D.Double(scaled_diameter/2 * dx/magnitude + x, scaled_diameter/2 * dy/magnitude + y);
     }
 
     @Override
