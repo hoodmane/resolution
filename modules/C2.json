@@ -2,5 +2,6 @@
     "prime" : 2,
     "generators" : {"x0" : 0, "x1" : 1},
     "relations" : ["b(x0) = x1"],
-    "T_max" : 30
+    "T_max" : 20,
+    "json_output" : "C2-out.json"
 } 

@@ -4,6 +4,8 @@ import res.algebra.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Point2D;
+import java.util.Deque;
+import java.util.LinkedList;
 
 import javax.swing.*;
 import javax.swing.UIManager;
@@ -41,6 +43,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     int consoleHeight = 250;
     Dimension openConsoleDimension = new Dimension(2000,295);   
     Dimension closedConsoleDimension = new Dimension(2000,35);
+    Deque<String> consoleCalls;
     
     SpectralSequenceCanvas canvas;
     SpectralSequence sseq;
@@ -92,7 +95,8 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
         d.consoleInput.setFont(font);
         d.consoleInput.setMargin( new Insets(0,10,0,10) ); 
 
-        d.consoleInput.addActionListener(d);          
+        d.consoleInput.addActionListener(d);    
+        d.consoleCalls = new LinkedList<>();
         
         fr.getContentPane().add(d.canvas, BorderLayout.CENTER);
 //        fr.getContentPane().add(d.consoleArea,BorderLayout.SOUTH);  
@@ -135,6 +139,8 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
                 canvas.repaint();                
             }
         );
+        consoleCalls.addFirst(consoleInput.getText());
+        consoleInput.setText("");
     }    
     
             
@@ -201,6 +207,7 @@ public class SpectralSequenceDisplay<U extends MultigradedElement<U>> extends JP
     public void windowOpened(WindowEvent e) {
         canvas.initializeTransform();
         this.canvas.repaint();  
+        this.repaint();
     }
 
     @Override
@@ -271,12 +278,36 @@ class ControlPanel2D extends Box {
                             return false;
                         }                        
                         parent.canvas.decrementPage();
-                        return true;
+                        return true; 
+                    
+                    case KeyEvent.VK_UP:
+                        if(parent.consoleInput.isFocusOwner()){
+                            if(!parent.consoleCalls.isEmpty()){
+                                if(!parent.consoleInput.getText().isEmpty()){
+                                    parent.consoleCalls.addLast(parent.consoleInput.getText());
+                                }
+                                parent.consoleInput.setText(parent.consoleCalls.removeFirst());
+                            }
+                            return true;
+                        }      
+                        return false;
+                    case KeyEvent.VK_DOWN:
+                        if(parent.consoleInput.isFocusOwner()){
+                            if(!parent.consoleCalls.isEmpty()){
+                                if(!parent.consoleInput.getText().isEmpty()){
+                                    parent.consoleCalls.addFirst(parent.consoleInput.getText());
+                                }
+                                parent.consoleInput.setText(parent.consoleCalls.removeLast());
+                            }
+                            return true;
+                        }      
+                        return false;
+                        
                     case KeyEvent.VK_G:  
                         handleGo();
                         return true;  
                     case KeyEvent.VK_C:
-                         if (e.isControlDown()){
+                         if (e.isControlDown() && e.isShiftDown()){
                             parent.toggleConsole();
                             return true;
                          }

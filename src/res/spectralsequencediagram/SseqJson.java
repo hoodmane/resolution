@@ -76,7 +76,7 @@ public class SseqJson {
     public void writeToFile(String filename) throws IOException {
         try (FileWriter fileWriter = new FileWriter(new File(filename))) {
             System.out.println(filename);
-            fileWriter.write(this.toString());
+            fileWriter.write(this.sseq.toString());
             fileWriter.flush();
             fileWriter.close();
         }

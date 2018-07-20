@@ -1,1 +1,1 @@
-{"prime" : 2, "generators" : {"x0" : 0}, "T_max" : 20, "tex_output" : "S2.tex", "json_output" : "S2-out.json"}
+{"prime" : 2, "generators" : {"x0" : 0}, "T_max" : 100, "tex_output" : "S2.tex", "json_output" : "S2-out.json"}

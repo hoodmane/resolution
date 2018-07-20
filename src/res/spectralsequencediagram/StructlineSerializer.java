@@ -82,6 +82,11 @@ public class StructlineSerializer implements JsonSerializer<Structline> {
         public boolean drawOnPageQ(int page) {
             return true;
         }
+
+        @Override
+        public int getPageMin() {
+            return 0;
+        }
         
     }
 }

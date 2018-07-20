@@ -52,5 +52,10 @@ public class BasedLineDecoration<T extends SseqClass> implements Structline {
     public boolean drawOnPageQ(int page) {
         return true;
     }
+
+    @Override
+    public int getPageMin() {
+        return 0;
+    }
 }
 

@@ -8,20 +8,21 @@ package res.spectralsequencediagram;
 import java.awt.Color;
 import java.awt.Shape;
 
+
 /**
  *
  * @author Hood
  */
 public interface Structline extends SseqEdge {
-    SseqClass getSource();
-    SseqClass getTarget();
     Shape getShape(int page);
-    Color getColor(int page);
     
     int getPage();
+//    default 
+    int getPageMin();
+    
     Structline setPage(int page);
     
     default boolean drawOnPageQ(int page){
-        return (this.getPage()<=page);
+        return (page <= this.getPage()) && this.getPageMin()<= page;
     }
 }

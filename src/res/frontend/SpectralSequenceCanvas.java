@@ -282,7 +282,7 @@ public class SpectralSequenceCanvas<U extends MultigradedElement<U>>
 //        int[] p = topToAlgGrading(x,y);
 //        x = p[0];
 //        y = p[1];
-        return getMinX() <= x && x <= getMaxX() && getMinY() <= y && y <= getMaxY();
+        return getMinX() <= x && x <= getMaxX() && getMinY() <= y && y <= getMaxY() && d.drawOnPageQ(page);
     }
 
 //    int[] algToTopGrading(int x, int y){
@@ -453,7 +453,7 @@ public class SpectralSequenceCanvas<U extends MultigradedElement<U>>
                         if(frameVisibles.contains(d)) {
                             d.getNode(page).setPosition(
                                     getScreenX(x) + offset + fullTransform.getScaleX()/2,
-                                    getScreenY(y) - offset/2 + fullTransform.getScaleY()/2);
+                                    getScreenY(y) + offset/2 + fullTransform.getScaleY()/2);
                             offset += 10 * scale;
                         }
                     }
@@ -466,7 +466,9 @@ public class SpectralSequenceCanvas<U extends MultigradedElement<U>>
         /* draw edges */
         for(SseqClass u : frameVisibles) {
             for(Structline s : u.getStructlines()){
-                drawHelpers.drawEdge(s);
+                if(s.drawOnPageQ(page)){
+                    drawHelpers.drawEdge(s);
+                }
             }
 
             for(Differential s : u.getOutgoingDifferentials()){
